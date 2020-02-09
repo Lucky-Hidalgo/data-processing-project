@@ -7,8 +7,9 @@ from openpyxl.utils.dataframe import dataframe_to_rows
 
 
 NOMBRE_ARCHIVO_ENTRADA = 'carreras.xlsx'
-NOMBRE_ARCHIVO_SALIDA = 'salida.xlsx'
+NOMBRE_ARCHIVO_SALIDA = 'salida-big.xlsx'
 
+RUTS = []
 
 # Se necesitan 5 diagnósticos
     # SOCIOEDUCATIVO
@@ -86,6 +87,9 @@ def crear_persona(facultad, carrera, via):
         ape2 = fake.last_name()
 
     run = random.randint(18000000,21000000)
+    while run in RUTS :
+        run = random.randint(18000000,21000000)    
+    RUTS.append(run)
     dv = digito_verificador(run)
     if dv == 10 :
         
@@ -222,35 +226,35 @@ lista_diagnosticos = definir_diagnosticos(lista_facultades)
 j = 0
 TODO = pd.DataFrame(
         columns=(
-            'nombre_usuario', 
-            'clave',
-            'nombres',
-            'apellidos',
-            'correo',
-            'rut',
-            'proceso',
-            'sexo',
-            'fecha_nacimiento',
-            'facultad',
-            'carrera',
-            'preferencia',
-            'anio_egreso',
-            'nem',
-            'puntaje_nem',
-            'puntaje_ranking',
-            'puntaje_psu_lyc',
-            'puntaje_psu_mat',
-            'promedio_psu',
-            'via_ingreso',
-            'dependencia',
-            'consentimiento_informado'
+            'NOMBRE_USUARIO', 
+            'CLAVE',
+            'NOMBRES',
+            'APELLIDOS',
+            'CORREO',
+            'RUT',
+            'PROCESO',
+            'SEXO',
+            'FECHA_NACIMIENTO',
+            'FACULTAD',
+            'CARRERA',
+            'PREFERENCIA',
+            'ANIO_EGRESO',
+            'NEM',
+            'PUNTAJE_NEM',
+            'PUNTAJE_RANKING',
+            'PUNTAJE_PSU_LYC',
+            'PUNTAJE_PSU_MAT', 
+            'PROMEDIO_PSU',
+            'VIA_INGRESO',
+            'DEPENDENCIA',
+            'CONSENTIMIENTO_INFORMADO'
             )
         )
 for facultad in facultades.keys() :
     nom_facultad = facultad
         
     poblar_personas(facultades, nom_facultad)
-TODO.set_index('nombre_usuario')
+TODO.set_index('NOMBRE_USUARIO')
 TODO.to_excel('salida-big.xlsx', sheet_name='ESTUDIANTES', index=False)
 
 
