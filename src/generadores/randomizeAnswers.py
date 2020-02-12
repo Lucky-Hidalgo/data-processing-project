@@ -3,7 +3,8 @@ import random
 import numpy as np
 
 
-NOMBRE_ARCHIVO_ENTRADA = 'salida-big.xlsx'
+NOMBRE_ARCHIVO_ENTRADA = 'salida-big-1.xlsx'
+NOMBRE_ARCHIVO_SALIDA = 'salida-big-1-output.xlsx'
 
 columnas_socioeducativo = [
         "RESPONDIÓ CUESTIONARIO SOCIOEDUCATIVO",
@@ -837,6 +838,7 @@ lista_facultades = obtener_facultades(base)
 
 lista_diagnosticos = definir_diagnosticos(lista_facultades)
 
+base.columns = [c.replace(' ', '_') for c in base.columns]
 
 total = responderSocioeducativos(base, lista_facultades, lista_diagnosticos)
 aux = agregarDataSimulada(total, columnas_socioeducativo, base)
@@ -859,4 +861,6 @@ total = responderEscrituraAcademicas(base, lista_facultades, lista_diagnosticos)
 aux  = agregarDataSimulada(total, columnas_escritura_academica, base)
 print('Pasó escritura')
 
-aux.to_excel('salida-big-output.xlsx', sheet_name='ESTUDIANTES', index=True)
+aux.columns = [c.replace('_', ' ') for c in base.columns]
+aux.to_excel(NOMBRE_ARCHIVO_SALIDA, sheet_name='ESTUDIANTES', index=True)
+

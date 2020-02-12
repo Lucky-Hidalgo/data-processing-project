@@ -2,12 +2,12 @@ import pandas as pd
 import random
 from faker import Faker
 from itertools import cycle
-from openpyxl import Workbook
-from openpyxl.utils.dataframe import dataframe_to_rows
+#from openpyxl import Workbook
+#from openpyxl.utils.dataframe import dataframe_to_rows
 
 
 NOMBRE_ARCHIVO_ENTRADA = 'carreras.xlsx'
-NOMBRE_ARCHIVO_SALIDA = 'salida-big.xlsx'
+NOMBRE_ARCHIVO_SALIDA = 'salida-big-1.xlsx'
 
 RUTS = []
 
@@ -226,7 +226,7 @@ lista_diagnosticos = definir_diagnosticos(lista_facultades)
 j = 0
 TODO = pd.DataFrame(
         columns=(
-            'NOMBRE_USUARIO', 
+            'NOMBRE USUARIO', 
             'CLAVE',
             'NOMBRES',
             'APELLIDOS',
@@ -234,28 +234,28 @@ TODO = pd.DataFrame(
             'RUT',
             'PROCESO',
             'SEXO',
-            'FECHA_NACIMIENTO',
+            'FECHA NACIMIENTO',
             'FACULTAD',
             'CARRERA',
             'PREFERENCIA',
-            'ANIO_EGRESO',
+            'AÑO EGRESO',
             'NEM',
-            'PUNTAJE_NEM',
-            'PUNTAJE_RANKING',
-            'PUNTAJE_PSU_LYC',
-            'PUNTAJE_PSU_MAT', 
-            'PROMEDIO_PSU',
-            'VIA_INGRESO',
+            'PUNTAJE NEM',
+            'PUNTAJE RANKING',
+            'PUNTAJE PSU LYC',
+            'PUNTAJE PSU MAT', 
+            'PROMEDIO PSU',
+            'VIA INGRESO',
             'DEPENDENCIA',
-            'CONSENTIMIENTO_INFORMADO'
+            'CONSENTIMIENTO INFORMADO'
             )
         )
 for facultad in facultades.keys() :
     nom_facultad = facultad
         
     poblar_personas(facultades, nom_facultad)
-TODO.set_index('NOMBRE_USUARIO')
-TODO.to_excel('salida-big.xlsx', sheet_name='ESTUDIANTES', index=False)
+TODO.set_index('NOMBRE USUARIO')
+TODO.to_excel(NOMBRE_ARCHIVO_SALIDA, sheet_name='ESTUDIANTES', index=False)
 
 
 
