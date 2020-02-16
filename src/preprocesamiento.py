@@ -81,6 +81,29 @@ def _crear_carpetas_carreras(diccionario_facultades, directorio_salida):
             
     return carpetas
 
+def _eliminar_ambiguedades(lista):
+    # Función que añade un identificador a las columnas ambiguas para diferenciarlas
+    # posteriormente en los procesos de cálculo
+    i = 0
+    lista = list(lista)
+    
+    while i < len(lista): 
+        e = lista[i]
+        # Si el índice de la columna está después del 
+        # diagnóstico de pensamiento científico y antes de escritura académica
+        if lista.index(e) > lista.index('RESPONDIÓ_PENSAMIENTO_CIENTÍFICO') and \
+            lista.index(e) < lista.index('RESPONDIÓ_ESCRITURA_ACADÉMICA'):
+            # Si existe ambiguedad en el nombre
+            if 'PENSAMIENTO_CIENTÍFICO' not in e and 'PC' not in e:
+                # Agregar PC para diferenciar
+                lista[i] = e.strip() + '_PC'
+        elif lista.index(e) > lista.index('RESPONDIÓ_ESCRITURA_ACADÉMICA'):
+            # Si existe ambiguedad en el nombre
+            if 'ESCRITURA_ACADÉMICA' not in e and 'EA' not in e :
+                # Agregar EA para diferenciar
+                lista[i] = e.strip() + '_EA'
+        i = i + 1
+    return lista
 
 def _limpiar_data_frame(base):
     # Función que realiza limpieza de algunos valores del dataframe
@@ -92,9 +115,8 @@ def _limpiar_data_frame(base):
                             for c in base.columns]
     base.columns = [c.strip().upper().replace('__', '_') 
                             for c in base.columns]
+    base.columns = _eliminar_ambiguedades(base.columns)
     return base
-
-
 
 def _limpiar_columnas_string(base, nombre_columna):
     # Función para procesar columnas que sean de tipo string

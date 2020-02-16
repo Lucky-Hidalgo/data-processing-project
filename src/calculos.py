@@ -12,6 +12,10 @@ def _formatear_columnas(list):
     list = [c.strip().upper().replace('_', ' ') for c in list]
     return list
 
+def _formatear_data_set(data):
+    data.fillna(0, inplace=True)
+    return data
+
 def crear_df_carreras(data):
     # Crea dataframe para almacenar resultados, con columnas
     # CARRERA (Index)
@@ -78,7 +82,7 @@ def crear_df_carreras(data):
     return out
 
 
-def resumen_matematica_a(data, resumen):
+def crear_resumen_matematica_a(data, resumen):
 
     # Los calculos resumidos se hacen para todos, pero solo se agregan 
     # a los que alcancen esta tasa mínima
@@ -188,6 +192,8 @@ def resumen_matematica_a(data, resumen):
     porcentaje_promedio_obj_8_usach = aux_data['PORCENTAJE_DE_LOGRO_OBJETIVO_8_(MA)'].mean() 
 
     # Se agregan los valores globales de la usach como columna en cada caso
+    out['puntaje_total_promedio_usach'] = puntaje_total_promedio_usach
+    out['porcentaje_logro_promedio_usach'] = porcentaje_de_logro_usach
     out['porcentaje_promedio_eje_1_usach'] = porcentaje_promedio_eje_1_usach
     out['porcentaje_promedio_eje_2_usach'] = porcentaje_promedio_eje_2_usach
     out['porcentaje_promedio_eje_3_usach'] = porcentaje_promedio_eje_3_usach
@@ -269,6 +275,476 @@ def resumen_matematica_a(data, resumen):
     out['porcentaje_estudiantes_con_puntaje_bajo'] = out['estudiantes_con_puntaje_bajo'] / out['INSCRITOS']
     # FORMATEAR COLUMNAS PARA SALIDA
     out.columns = _formatear_columnas(out.columns)
+    out = _formatear_data_set(out)
     return out
 
 
+def crear_resumen_matematica_b(data, resumen):
+
+    # Los calculos resumidos se hacen para todos, pero solo se agregan 
+    # a los que alcancen esta tasa mínima
+    condicion = resumen['SI_MB'] > resumen['INSCRITOS'] * TASA_DE_TOLERANCIA
+    
+    carreras_diagnostico = resumen[condicion]
+    # TODO EN RESUMEN CALCULAR LOS CUPOS CON VALUES COUNT Y AGREGARLOS AL REPORTE 
+    carreras_diagnostico = carreras_diagnostico.filter(['CARRERA',
+                                                        'FACULTAD',
+                                                        'INSCRITOS',
+                                                        'SI_MB',
+                                                        'NO_MB']
+                                                        )
+    
+
+    aux_data = data.filter(['CARRERA',
+                            'FACULTAD',
+                            'PUNTAJE_TOTAL_(MB)',
+                            'PORCENTAJE_DE_LOGRO_(MB)',
+                            'OBJETIVO_1_(MB)',
+                            'OBJETIVO_2_(MB)',
+                            'OBJETIVO_3_(MB)',
+                            'OBJETIVO_4_(MB)',
+                            'OBJETIVO_5_(MB)',
+                            'PORCENTAJE_DE_LOGRO_OBJETIVO_1_(MB)',
+                            'PORCENTAJE_DE_LOGRO_OBJETIVO_2_(MB)',
+                            'PORCENTAJE_DE_LOGRO_OBJETIVO_3_(MB)',
+                            'PORCENTAJE_DE_LOGRO_OBJETIVO_4_(MB)',
+                            'PORCENTAJE_DE_LOGRO_OBJETIVO_5_(MB)',
+                            'EJE_TEMÁTICO_1_(MB)',
+                            'EJE_TEMÁTICO_2_(MB)',
+                            'EJE_TEMÁTICO_3_(MB)',
+                            'EJE_TEMÁTICO_4_(MB)',
+                            'PORCENTAJE_DE_LOGRO_EJE_1_(MB)',
+                            'PORCENTAJE_DE_LOGRO_EJE_2_(MB)',
+                            'PORCENTAJE_DE_LOGRO_EJE_3_(MB)',
+                            'PORCENTAJE_DE_LOGRO_EJE_4_(MB)'
+                            ])
+    
+    calculos_x_facultad = aux_data.groupby('FACULTAD').agg(
+        # Puntaje promedio de la facultad
+        puntaje_total_promedio_fac = ('PUNTAJE_TOTAL_(MB)', 'mean'),
+        # Porcentaje de logro promedio de la facultad
+        porcentaje_de_logro_promedio_fac = ('PORCENTAJE_DE_LOGRO_(MB)', 'mean'),
+        
+        # Porcentaje de logro x eje temático por facultad 
+        porcentaje_promedio_eje_1_fac = ('PORCENTAJE_DE_LOGRO_EJE_1_(MB)', 'mean'),
+        porcentaje_promedio_eje_2_fac = ('PORCENTAJE_DE_LOGRO_EJE_2_(MB)', 'mean'),
+        porcentaje_promedio_eje_3_fac = ('PORCENTAJE_DE_LOGRO_EJE_3_(MB)', 'mean'),
+        porcentaje_promedio_eje_4_fac = ('PORCENTAJE_DE_LOGRO_EJE_4_(MB)', 'mean'),
+        # Porcentaje de logro x objetivo por facultad
+        porcentaje_promedio_obj_1_fac = ('PORCENTAJE_DE_LOGRO_OBJETIVO_1_(MB)', 'mean'),
+        porcentaje_promedio_obj_2_fac = ('PORCENTAJE_DE_LOGRO_OBJETIVO_2_(MB)', 'mean'),
+        porcentaje_promedio_obj_3_fac = ('PORCENTAJE_DE_LOGRO_OBJETIVO_3_(MB)', 'mean'),
+        porcentaje_promedio_obj_4_fac = ('PORCENTAJE_DE_LOGRO_OBJETIVO_4_(MB)', 'mean'),
+        porcentaje_promedio_obj_5_fac = ('PORCENTAJE_DE_LOGRO_OBJETIVO_5_(MB)', 'mean')
+
+    )
+
+    out = aux_data.groupby('CARRERA').agg(
+        # Puntaje promedio de la carrera
+        puntaje_total_promedio = ('PUNTAJE_TOTAL_(MB)', 'mean'),
+        # Porcentaje de logro promedio
+        porcentaje_de_logro_promedio = ('PORCENTAJE_DE_LOGRO_(MB)', 'mean'),
+        # Porcentaje de logro x eje temático por carrera 
+        porcentaje_promedio_eje_1 = ('PORCENTAJE_DE_LOGRO_EJE_1_(MB)', 'mean'),
+        porcentaje_promedio_eje_2 = ('PORCENTAJE_DE_LOGRO_EJE_2_(MB)', 'mean'),
+        porcentaje_promedio_eje_3 = ('PORCENTAJE_DE_LOGRO_EJE_3_(MB)', 'mean'),
+        porcentaje_promedio_eje_4 = ('PORCENTAJE_DE_LOGRO_EJE_4_(MB)', 'mean'),
+        # Porcentaje de logro x objetivo por carrera
+        porcentaje_promedio_obj_1 = ('PORCENTAJE_DE_LOGRO_OBJETIVO_1_(MB)', 'mean'),
+        porcentaje_promedio_obj_2 = ('PORCENTAJE_DE_LOGRO_OBJETIVO_2_(MB)', 'mean'),
+        porcentaje_promedio_obj_3 = ('PORCENTAJE_DE_LOGRO_OBJETIVO_3_(MB)', 'mean'),
+        porcentaje_promedio_obj_4 = ('PORCENTAJE_DE_LOGRO_OBJETIVO_4_(MB)', 'mean'),
+        porcentaje_promedio_obj_5 = ('PORCENTAJE_DE_LOGRO_OBJETIVO_5_(MB)', 'mean')
+               
+    )
+    # Se calculan los valores para todos los datos del conjunto
+    puntaje_total_promedio_usach = aux_data['PUNTAJE_TOTAL_(MB)'].mean()
+    porcentaje_de_logro_usach = aux_data['PORCENTAJE_DE_LOGRO_(MB)'].mean()
+    # Porcentaje de logro x eje temático total 
+    porcentaje_promedio_eje_1_usach = aux_data['PORCENTAJE_DE_LOGRO_EJE_1_(MB)'].mean()
+    porcentaje_promedio_eje_2_usach = aux_data['PORCENTAJE_DE_LOGRO_EJE_2_(MB)'].mean()
+    porcentaje_promedio_eje_3_usach = aux_data['PORCENTAJE_DE_LOGRO_EJE_3_(MB)'].mean()
+    porcentaje_promedio_eje_4_usach = aux_data['PORCENTAJE_DE_LOGRO_EJE_4_(MB)'].mean()
+    # Porcentaje de logro x objetivo total
+    porcentaje_promedio_obj_1_usach = aux_data['PORCENTAJE_DE_LOGRO_OBJETIVO_1_(MB)'].mean()
+    porcentaje_promedio_obj_2_usach = aux_data['PORCENTAJE_DE_LOGRO_OBJETIVO_2_(MB)'].mean()
+    porcentaje_promedio_obj_3_usach = aux_data['PORCENTAJE_DE_LOGRO_OBJETIVO_3_(MB)'].mean()
+    porcentaje_promedio_obj_4_usach = aux_data['PORCENTAJE_DE_LOGRO_OBJETIVO_4_(MB)'].mean()
+    porcentaje_promedio_obj_5_usach = aux_data['PORCENTAJE_DE_LOGRO_OBJETIVO_5_(MB)'].mean()
+
+
+    # Se agregan los valores globales de la usach como columna en cada caso
+    out['puntaje_total_promedio_usach'] = puntaje_total_promedio_usach
+    out['porcentaje_logro_promedio_usach'] = porcentaje_de_logro_usach
+    out['porcentaje_promedio_eje_1_usach'] = porcentaje_promedio_eje_1_usach
+    out['porcentaje_promedio_eje_2_usach'] = porcentaje_promedio_eje_2_usach
+    out['porcentaje_promedio_eje_3_usach'] = porcentaje_promedio_eje_3_usach
+    out['porcentaje_promedio_eje_4_usach'] = porcentaje_promedio_eje_4_usach
+    out['porcentaje_promedio_obj_1_usach'] = porcentaje_promedio_obj_1_usach
+    out['porcentaje_promedio_obj_2_usach'] = porcentaje_promedio_obj_2_usach
+    out['porcentaje_promedio_obj_3_usach'] = porcentaje_promedio_obj_3_usach
+    out['porcentaje_promedio_obj_4_usach'] = porcentaje_promedio_obj_4_usach
+    out['porcentaje_promedio_obj_5_usach'] = porcentaje_promedio_obj_5_usach
+
+
+    # Se calculan los valores de diferencia con la usach
+    diferencia_puntaje_total_usach = out['puntaje_total_promedio'] - puntaje_total_promedio_usach
+    diferencia_porcentaje_de_logro_usach = out['porcentaje_de_logro_promedio'] - porcentaje_de_logro_usach 
+    diferencia_promedio_eje_1_usach = out['porcentaje_promedio_eje_1'] - porcentaje_promedio_eje_1_usach
+    diferencia_promedio_eje_2_usach = out['porcentaje_promedio_eje_2'] - porcentaje_promedio_eje_2_usach
+    diferencia_promedio_eje_3_usach = out['porcentaje_promedio_eje_3'] - porcentaje_promedio_eje_3_usach
+    diferencia_promedio_eje_4_usach = out['porcentaje_promedio_eje_4'] - porcentaje_promedio_eje_4_usach
+    diferencia_promedio_obj_1_usach = out['porcentaje_promedio_obj_1'] - porcentaje_promedio_obj_1_usach
+    diferencia_promedio_obj_2_usach = out['porcentaje_promedio_obj_2'] - porcentaje_promedio_obj_2_usach
+    diferencia_promedio_obj_3_usach = out['porcentaje_promedio_obj_3'] - porcentaje_promedio_obj_3_usach
+    diferencia_promedio_obj_4_usach = out['porcentaje_promedio_obj_4'] - porcentaje_promedio_obj_4_usach
+    diferencia_promedio_obj_5_usach = out['porcentaje_promedio_obj_5'] - porcentaje_promedio_obj_5_usach
+
+    # Se agregan las diferencias con los valores globales de la Universidad
+    out = pd.merge(out, diferencia_puntaje_total_usach.rename('DIFERENCIA_PUNTAJE_TOTAL_USACH'), how='left', on='CARRERA')
+    out = pd.merge(out, diferencia_porcentaje_de_logro_usach.rename('DIFERENCIA_PORCENTAJE_DE_LOGRO_USACH'), how='left', on='CARRERA')
+    out = pd.merge(out,diferencia_promedio_eje_1_usach.rename('diferencia_promedio_eje_1_usach'), how='left', on='CARRERA')
+    out = pd.merge(out,diferencia_promedio_eje_2_usach.rename('diferencia_promedio_eje_2_usach'), how='left', on='CARRERA')
+    out = pd.merge(out,diferencia_promedio_eje_3_usach.rename('diferencia_promedio_eje_3_usach'), how='left', on='CARRERA')
+    out = pd.merge(out,diferencia_promedio_eje_4_usach.rename('diferencia_promedio_eje_4_usach'), how='left', on='CARRERA')
+    out = pd.merge(out,diferencia_promedio_obj_1_usach.rename('diferencia_promedio_obj_1_usach'), how='left', on='CARRERA')
+    out = pd.merge(out,diferencia_promedio_obj_2_usach.rename('diferencia_promedio_obj_2_usach'), how='left', on='CARRERA')
+    out = pd.merge(out,diferencia_promedio_obj_3_usach.rename('diferencia_promedio_obj_3_usach'), how='left', on='CARRERA')
+    out = pd.merge(out,diferencia_promedio_obj_4_usach.rename('diferencia_promedio_obj_4_usach'), how='left', on='CARRERA')
+    out = pd.merge(out,diferencia_promedio_obj_5_usach.rename('diferencia_promedio_obj_5_usach'), how='left', on='CARRERA')
+
+
+
+    # Se realiza el merge solo con las carreras a las que les interesa la información
+    out = pd.merge(carreras_diagnostico, out, how='left', on='CARRERA')
+    out.reset_index(inplace=True)
+   
+    out = pd.merge(out, calculos_x_facultad, how='left', on='FACULTAD', left_index=True)
+    out.set_index('CARRERA', inplace=True)
+    # Calcular diferencia con FACULTADES
+    out['diferencia_puntaje_total_fac'] = out['puntaje_total_promedio'] - out['puntaje_total_promedio_fac']
+    out['diferencia_porcentaje_de_logro_fac'] = out['porcentaje_de_logro_promedio'] - out['porcentaje_de_logro_promedio_fac']
+
+    out['diferencia_promedio_eje_1_fac'] = out['porcentaje_promedio_eje_1'] - out['porcentaje_promedio_eje_1_fac']
+    out['diferencia_promedio_eje_2_fac'] = out['porcentaje_promedio_eje_2'] - out['porcentaje_promedio_eje_2_fac']
+    out['diferencia_promedio_eje_3_fac'] = out['porcentaje_promedio_eje_3'] - out['porcentaje_promedio_eje_3_fac']
+    out['diferencia_promedio_eje_4_fac'] = out['porcentaje_promedio_eje_4'] - out['porcentaje_promedio_eje_4_fac']
+    out['diferencia_promedio_obj_1_fac'] = out['porcentaje_promedio_obj_1'] - out['porcentaje_promedio_obj_1_fac']
+    out['diferencia_promedio_obj_2_fac'] = out['porcentaje_promedio_obj_2'] - out['porcentaje_promedio_obj_2_fac']
+    out['diferencia_promedio_obj_3_fac'] = out['porcentaje_promedio_obj_3'] - out['porcentaje_promedio_obj_3_fac']
+    out['diferencia_promedio_obj_4_fac'] = out['porcentaje_promedio_obj_4'] - out['porcentaje_promedio_obj_4_fac']
+    out['diferencia_promedio_obj_5_fac'] = out['porcentaje_promedio_obj_5'] - out['porcentaje_promedio_obj_5_fac']
+
+    # CALCULAR CANTIDAD DE CASOS CRITICOS
+    
+    new_aux_data = aux_data[aux_data['PORCENTAJE_DE_LOGRO_(MB)'] < 0.6]
+    
+    estudiantes_con_puntaje_bajo = new_aux_data.groupby('CARRERA')['PORCENTAJE_DE_LOGRO_(MB)'].count()
+    
+    out = pd.merge(out,estudiantes_con_puntaje_bajo.rename('estudiantes_con_puntaje_bajo'), how='left', on='CARRERA')
+    out['porcentaje_estudiantes_con_puntaje_bajo'] = out['estudiantes_con_puntaje_bajo'] / out['INSCRITOS']
+    # FORMATEAR COLUMNAS PARA SALIDA
+    out.columns = _formatear_columnas(out.columns)
+    out = _formatear_data_set(out)
+    return out
+
+
+def crear_resumen_pensamiento_cientifico(data, resumen):
+    # Los calculos resumidos se hacen para todos, pero solo se agregan 
+    # a los que alcancen esta tasa mínima
+    condicion = resumen['SI_PC'] > resumen['INSCRITOS'] * TASA_DE_TOLERANCIA
+    
+    carreras_diagnostico = resumen[condicion]
+    # TODO EN RESUMEN CALCULAR LOS CUPOS CON VALUES COUNT Y AGREGARLOS AL REPORTE 
+    carreras_diagnostico = carreras_diagnostico.filter(['CARRERA',
+                                                        'FACULTAD',
+                                                        'INSCRITOS',
+                                                        'SI_PC',
+                                                        'NO_PC']
+                                                        )
+    
+
+    aux_data = data.filter(['CARRERA',
+                            'FACULTAD',
+                            'PUNTAJE_TOTAL_(PC)',
+                            'PORCENTAJE_DE_LOGRO_(PC)',
+                            'PENSAMIENTO_CIENTÍFICO_DIMENSIÓN_1',
+                            'PENSAMIENTO_CIENTÍFICO_DIMENSIÓN_2',
+                            'PENSAMIENTO_CIENTÍFICO_DIMENSIÓN_3',
+                            'PENSAMIENTO_CIENTÍFICO_DIMENSIÓN_4',
+                            'PENSAMIENTO_CIENTÍFICO_DIMENSIÓN_5',
+                            'PORCENTAJE_LOGRO_DIMENSIÓN_1_PC',
+                            'PORCENTAJE_LOGRO_DIMENSIÓN_2_PC',
+                            'PORCENTAJE_LOGRO_DIMENSIÓN_3_PC',
+                            'PORCENTAJE_LOGRO_DIMENSIÓN_4_PC',
+                            'PORCENTAJE_LOGRO_DIMENSIÓN_5_PC',
+                            'PENSAMIENTO_CIENTÍFICO_CATEGORÍA'
+
+                            ])
+
+    calculos_x_facultad = aux_data.groupby('FACULTAD').agg(
+        # Puntaje promedio de la facultad
+        puntaje_total_promedio_fac = ('PUNTAJE_TOTAL_(PC)', 'mean'),
+        # Porcentaje de logro promedio de la facultad
+        porcentaje_de_logro_promedio_fac = ('PORCENTAJE_DE_LOGRO_(PC)', 'mean'),
+        
+        # Porcentaje de logro x dimensión temático por facultad 
+        porcentaje_promedio_dim_1_fac = ('PORCENTAJE_LOGRO_DIMENSIÓN_1_PC', 'mean'),
+        porcentaje_promedio_dim_2_fac = ('PORCENTAJE_LOGRO_DIMENSIÓN_2_PC', 'mean'),
+        porcentaje_promedio_dim_3_fac = ('PORCENTAJE_LOGRO_DIMENSIÓN_3_PC', 'mean'),
+        porcentaje_promedio_dim_4_fac = ('PORCENTAJE_LOGRO_DIMENSIÓN_4_PC', 'mean'),
+        porcentaje_promedio_dim_5_fac = ('PORCENTAJE_LOGRO_DIMENSIÓN_5_PC', 'mean'),
+    )
+
+    out = aux_data.groupby('CARRERA').agg(
+        # Puntaje promedio de la carrera
+        puntaje_total_promedio = ('PUNTAJE_TOTAL_(PC)', 'mean'),
+        # Porcentaje de logro promedio de la carrera
+        porcentaje_de_logro_promedio = ('PORCENTAJE_DE_LOGRO_(PC)', 'mean'),
+        
+        # Porcentaje de logro x dimensión de la carrera 
+        porcentaje_promedio_dim_1 = ('PORCENTAJE_LOGRO_DIMENSIÓN_1_PC', 'mean'),
+        porcentaje_promedio_dim_2 = ('PORCENTAJE_LOGRO_DIMENSIÓN_2_PC', 'mean'),
+        porcentaje_promedio_dim_3 = ('PORCENTAJE_LOGRO_DIMENSIÓN_3_PC', 'mean'),
+        porcentaje_promedio_dim_4 = ('PORCENTAJE_LOGRO_DIMENSIÓN_4_PC', 'mean'),
+        porcentaje_promedio_dim_5 = ('PORCENTAJE_LOGRO_DIMENSIÓN_5_PC', 'mean'),
+    )
+
+    # Se calculan los valores para todos los datos del conjunto
+    puntaje_total_promedio_usach = aux_data['PUNTAJE_TOTAL_(PC)'].mean()
+    porcentaje_de_logro_usach = aux_data['PORCENTAJE_DE_LOGRO_(PC)'].mean()
+    # Porcentaje de logro x eje temático total 
+    porcentaje_promedio_dim_1_usach = aux_data['PORCENTAJE_LOGRO_DIMENSIÓN_1_PC'].mean()
+    porcentaje_promedio_dim_2_usach = aux_data['PORCENTAJE_LOGRO_DIMENSIÓN_2_PC'].mean()
+    porcentaje_promedio_dim_3_usach = aux_data['PORCENTAJE_LOGRO_DIMENSIÓN_3_PC'].mean()
+    porcentaje_promedio_dim_4_usach = aux_data['PORCENTAJE_LOGRO_DIMENSIÓN_4_PC'].mean()
+    porcentaje_promedio_dim_5_usach = aux_data['PORCENTAJE_LOGRO_DIMENSIÓN_5_PC'].mean()
+
+    # Se calculan los valores de diferencia con la usach
+    diferencia_puntaje_total_usach = out['puntaje_total_promedio'] - puntaje_total_promedio_usach
+    diferencia_porcentaje_de_logro_usach = out['porcentaje_de_logro_promedio'] - porcentaje_de_logro_usach 
+    diferencia_promedio_dim_1_usach = out['porcentaje_promedio_dim_1'] - porcentaje_promedio_dim_1_usach
+    diferencia_promedio_dim_2_usach = out['porcentaje_promedio_dim_2'] - porcentaje_promedio_dim_2_usach
+    diferencia_promedio_dim_3_usach = out['porcentaje_promedio_dim_3'] - porcentaje_promedio_dim_3_usach
+    diferencia_promedio_dim_4_usach = out['porcentaje_promedio_dim_4'] - porcentaje_promedio_dim_4_usach
+    diferencia_promedio_dim_5_usach = out['porcentaje_promedio_dim_5'] - porcentaje_promedio_dim_5_usach
+
+    # Se agregan las diferencias con los valores globales de la Universidad
+    out = pd.merge(out, diferencia_puntaje_total_usach.rename('DIFERENCIA_PUNTAJE_TOTAL_USACH'), how='left', on='CARRERA')
+    out = pd.merge(out, diferencia_porcentaje_de_logro_usach.rename('DIFERENCIA_PORCENTAJE_DE_LOGRO_USACH'), how='left', on='CARRERA')
+    out = pd.merge(out,diferencia_promedio_dim_1_usach.rename('diferencia_promedio_dim_1_usach'), how='left', on='CARRERA')
+    out = pd.merge(out,diferencia_promedio_dim_2_usach.rename('diferencia_promedio_dim_2_usach'), how='left', on='CARRERA')
+    out = pd.merge(out,diferencia_promedio_dim_3_usach.rename('diferencia_promedio_dim_3_usach'), how='left', on='CARRERA')
+    out = pd.merge(out,diferencia_promedio_dim_4_usach.rename('diferencia_promedio_dim_4_usach'), how='left', on='CARRERA')
+    out = pd.merge(out,diferencia_promedio_dim_5_usach.rename('diferencia_promedio_dim_5_usach'), how='left', on='CARRERA')
+
+    # Se realiza el merge solo con las carreras a las que les interesa la información
+    out = pd.merge(carreras_diagnostico, out, how='left', on='CARRERA')
+    out.reset_index(inplace=True)
+   
+    out = pd.merge(out, calculos_x_facultad, how='left', on='FACULTAD', left_index=True)
+    out.set_index('CARRERA', inplace=True)
+    # Calcular diferencia con FACULTADES
+    out['diferencia_puntaje_total_fac'] = out['puntaje_total_promedio'] - out['puntaje_total_promedio_fac']
+    out['diferencia_porcentaje_de_logro_fac'] = out['porcentaje_de_logro_promedio'] - out['porcentaje_de_logro_promedio_fac']
+
+    out['diferencia_promedio_dim_1_fac'] = out['porcentaje_promedio_dim_1'] - out['porcentaje_promedio_dim_1_fac']
+    out['diferencia_promedio_dim_2_fac'] = out['porcentaje_promedio_dim_2'] - out['porcentaje_promedio_dim_2_fac']
+    out['diferencia_promedio_dim_3_fac'] = out['porcentaje_promedio_dim_3'] - out['porcentaje_promedio_dim_3_fac']
+    out['diferencia_promedio_dim_4_fac'] = out['porcentaje_promedio_dim_4'] - out['porcentaje_promedio_dim_4_fac']
+    out['diferencia_promedio_dim_5_fac'] = out['porcentaje_promedio_dim_5'] - out['porcentaje_promedio_dim_5_fac']
+
+    # CALCULAR CANTIDAD DE ESTUDIANTES DE CADA CATEGORÍA DE PENSAMIENTO CIENTÍFICO
+    # Concretos
+    new_aux_data = aux_data[aux_data['PENSAMIENTO_CIENTÍFICO_CATEGORÍA'] == 'Concreto']
+    # CARRERA
+    concretos = new_aux_data.groupby('CARRERA')['PENSAMIENTO_CIENTÍFICO_CATEGORÍA'].count()
+    out = pd.merge(out, concretos.rename('concreto'), how='left', on='CARRERA')
+     
+    # FACULTAD
+    concretos_fac = new_aux_data.groupby('FACULTAD')['PENSAMIENTO_CIENTÍFICO_CATEGORÍA'].count()
+    out.reset_index(inplace=True)
+   
+    out = pd.merge(out, concretos_fac.rename('concreto_fac'), how='left', on='FACULTAD', left_index=True)
+    out.set_index('CARRERA', inplace=True)
+    # USACH
+    out['concreto_usach'] = new_aux_data['PENSAMIENTO_CIENTÍFICO_CATEGORÍA'].count()
+
+    # Transicional
+    new_aux_data = aux_data[aux_data['PENSAMIENTO_CIENTÍFICO_CATEGORÍA'] == 'Transicional']
+    # CARRERA
+    transicionales = new_aux_data.groupby('CARRERA')['PENSAMIENTO_CIENTÍFICO_CATEGORÍA'].count()
+    out = pd.merge(out, transicionales.rename('transicional'), how='left', on='CARRERA')
+     
+    # FACULTAD
+    transicionales_fac = new_aux_data.groupby('FACULTAD')['PENSAMIENTO_CIENTÍFICO_CATEGORÍA'].count()
+    out.reset_index(inplace=True)
+   
+    out = pd.merge(out, transicionales_fac.rename('transicional_fac'), how='left', on='FACULTAD', left_index=True)
+    out.set_index('CARRERA', inplace=True)
+    # USACH
+    out['transicional_usach'] = new_aux_data['PENSAMIENTO_CIENTÍFICO_CATEGORÍA'].count()
+
+    # Formal
+    new_aux_data = aux_data[aux_data['PENSAMIENTO_CIENTÍFICO_CATEGORÍA'] == 'Formal']
+    # CARRERA
+    formales = new_aux_data.groupby('CARRERA')['PENSAMIENTO_CIENTÍFICO_CATEGORÍA'].count()
+    out = pd.merge(out, formales.rename('formal'), how='left', on='CARRERA')
+     
+    # FACULTAD
+    formales_fac = new_aux_data.groupby('FACULTAD')['PENSAMIENTO_CIENTÍFICO_CATEGORÍA'].count()
+    out.reset_index(inplace=True)
+   
+    out = pd.merge(out, formales_fac.rename('formal_fac'), how='left', on='FACULTAD', left_index=True)
+    out.set_index('CARRERA', inplace=True)
+    # USACH
+    out['formal_usach'] = new_aux_data['PENSAMIENTO_CIENTÍFICO_CATEGORÍA'].count()
+
+    # CALCULAR CANTIDAD DE CASOS CRITICOS
+    
+    new_aux_data = aux_data[aux_data['PORCENTAJE_DE_LOGRO_(PC)'] < 0.6]
+    
+    estudiantes_con_puntaje_bajo = new_aux_data.groupby('CARRERA')['PORCENTAJE_DE_LOGRO_(PC)'].count()
+    
+    out = pd.merge(out,estudiantes_con_puntaje_bajo.rename('estudiantes_con_puntaje_bajo'), how='left', on='CARRERA')
+    out['porcentaje_estudiantes_con_puntaje_bajo'] = out['estudiantes_con_puntaje_bajo'] / out['INSCRITOS']
+    # FORMATEAR COLUMNAS PARA SALIDA
+    out.columns = _formatear_columnas(out.columns)
+    out = _formatear_data_set(out)
+    return out
+
+
+def crear_resumen_escritura_academica(data, resumen):
+
+    # Los calculos resumidos se hacen para todos, pero solo se agregan 
+    # a los que alcancen esta tasa mínima
+    condicion = resumen['SI_EA'] > resumen['INSCRITOS'] * TASA_DE_TOLERANCIA
+    
+    carreras_diagnostico = resumen[condicion]
+    # TODO EN RESUMEN CALCULAR LOS CUPOS CON VALUES COUNT Y AGREGARLOS AL REPORTE 
+    carreras_diagnostico = carreras_diagnostico.filter(['CARRERA',
+                                                        'FACULTAD',
+                                                        'INSCRITOS',
+                                                        'SI_EA',
+                                                        'NO_EA']
+                                                        )
+    
+
+    aux_data = data.filter(['CARRERA',
+                            'FACULTAD',
+                            'PUNTAJE_TOTAL_(EA)',
+                            'PORCENTAJE_DE_LOGRO_(EA)',
+                            'PORCENTAJE_DE_LOGRO_DIMENSIÓN_1_EA',
+                            'PORCENTAJE_DE_LOGRO_DIMENSIÓN_2_EA',
+                            'PORCENTAJE_DE_LOGRO_DIMENSIÓN_3_EA',
+                            'PORCENTAJE_DE_LOGRO_DIMENSIÓN_4_EA',
+                            'PORCENTAJE_DE_LOGRO_DIMENSIÓN_5_EA',
+                            'PORCENTAJE_DE_LOGRO_DIMENSIÓN_6_EA',
+                            'PORCENTAJE_DE_LOGRO_DIMENSIÓN_7_EA',
+                            'PORCENTAJE_DE_LOGRO_DIMENSIÓN_8_EA'
+                            ])
+
+    calculos_x_facultad = aux_data.groupby('FACULTAD').agg(
+        # Puntaje promedio de la facultad
+        puntaje_total_promedio_fac = ('PUNTAJE_TOTAL_(EA)', 'mean'),
+        # Porcentaje de logro promedio de la facultad
+        porcentaje_de_logro_promedio_fac = ('PORCENTAJE_DE_LOGRO_(EA)', 'mean'),
+        
+        # Porcentaje de logro x dimensión temático por facultad 
+        porcentaje_promedio_dim_1_fac = ('PORCENTAJE_DE_LOGRO_DIMENSIÓN_1_EA', 'mean'),
+        porcentaje_promedio_dim_2_fac = ('PORCENTAJE_DE_LOGRO_DIMENSIÓN_2_EA', 'mean'),
+        porcentaje_promedio_dim_3_fac = ('PORCENTAJE_DE_LOGRO_DIMENSIÓN_3_EA', 'mean'),
+        porcentaje_promedio_dim_4_fac = ('PORCENTAJE_DE_LOGRO_DIMENSIÓN_4_EA', 'mean'),
+        porcentaje_promedio_dim_5_fac = ('PORCENTAJE_DE_LOGRO_DIMENSIÓN_5_EA', 'mean'),
+        porcentaje_promedio_dim_6_fac = ('PORCENTAJE_DE_LOGRO_DIMENSIÓN_6_EA', 'mean'),
+        porcentaje_promedio_dim_7_fac = ('PORCENTAJE_DE_LOGRO_DIMENSIÓN_7_EA', 'mean'),
+        porcentaje_promedio_dim_8_fac = ('PORCENTAJE_DE_LOGRO_DIMENSIÓN_8_EA', 'mean')
+    )
+
+    out = aux_data.groupby('CARRERA').agg(
+        # Puntaje promedio de la carrera
+        puntaje_total_promedio = ('PUNTAJE_TOTAL_(EA)', 'mean'),
+        # Porcentaje de logro promedio de la carrera
+        porcentaje_de_logro_promedio = ('PORCENTAJE_DE_LOGRO_(EA)', 'mean'),
+        
+        # Porcentaje de logro x dimensión de la carrera 
+        
+        porcentaje_promedio_dim_1 = ('PORCENTAJE_DE_LOGRO_DIMENSIÓN_1_EA', 'mean'),
+        porcentaje_promedio_dim_2 = ('PORCENTAJE_DE_LOGRO_DIMENSIÓN_2_EA', 'mean'),
+        porcentaje_promedio_dim_3 = ('PORCENTAJE_DE_LOGRO_DIMENSIÓN_3_EA', 'mean'),
+        porcentaje_promedio_dim_4 = ('PORCENTAJE_DE_LOGRO_DIMENSIÓN_4_EA', 'mean'),
+        porcentaje_promedio_dim_5 = ('PORCENTAJE_DE_LOGRO_DIMENSIÓN_5_EA', 'mean'),
+        porcentaje_promedio_dim_6 = ('PORCENTAJE_DE_LOGRO_DIMENSIÓN_6_EA', 'mean'),
+        porcentaje_promedio_dim_7 = ('PORCENTAJE_DE_LOGRO_DIMENSIÓN_7_EA', 'mean'),
+        porcentaje_promedio_dim_8 = ('PORCENTAJE_DE_LOGRO_DIMENSIÓN_8_EA', 'mean')
+    )
+
+    # Se calculan los valores para todos los datos del conjunto
+    puntaje_total_promedio_usach = aux_data['PUNTAJE_TOTAL_(EA)'].mean()
+    porcentaje_de_logro_usach = aux_data['PORCENTAJE_DE_LOGRO_(EA)'].mean()
+    # Porcentaje de logro x eje temático total 
+    porcentaje_promedio_dim_1_usach = aux_data['PORCENTAJE_DE_LOGRO_DIMENSIÓN_1_EA'].mean()
+    porcentaje_promedio_dim_2_usach = aux_data['PORCENTAJE_DE_LOGRO_DIMENSIÓN_2_EA'].mean()
+    porcentaje_promedio_dim_3_usach = aux_data['PORCENTAJE_DE_LOGRO_DIMENSIÓN_3_EA'].mean()
+    porcentaje_promedio_dim_4_usach = aux_data['PORCENTAJE_DE_LOGRO_DIMENSIÓN_4_EA'].mean()
+    porcentaje_promedio_dim_5_usach = aux_data['PORCENTAJE_DE_LOGRO_DIMENSIÓN_5_EA'].mean()
+    porcentaje_promedio_dim_6_usach = aux_data['PORCENTAJE_DE_LOGRO_DIMENSIÓN_6_EA'].mean()
+    porcentaje_promedio_dim_7_usach = aux_data['PORCENTAJE_DE_LOGRO_DIMENSIÓN_7_EA'].mean()
+    porcentaje_promedio_dim_8_usach = aux_data['PORCENTAJE_DE_LOGRO_DIMENSIÓN_8_EA'].mean()
+
+    # Se calculan los valores de diferencia con la usach
+    diferencia_puntaje_total_usach = out['puntaje_total_promedio'] - puntaje_total_promedio_usach
+    diferencia_porcentaje_de_logro_usach = out['porcentaje_de_logro_promedio'] - porcentaje_de_logro_usach 
+    diferencia_promedio_dim_1_usach = out['porcentaje_promedio_dim_1'] - porcentaje_promedio_dim_1_usach
+    diferencia_promedio_dim_2_usach = out['porcentaje_promedio_dim_2'] - porcentaje_promedio_dim_2_usach
+    diferencia_promedio_dim_3_usach = out['porcentaje_promedio_dim_3'] - porcentaje_promedio_dim_3_usach
+    diferencia_promedio_dim_4_usach = out['porcentaje_promedio_dim_4'] - porcentaje_promedio_dim_4_usach
+    diferencia_promedio_dim_5_usach = out['porcentaje_promedio_dim_5'] - porcentaje_promedio_dim_5_usach
+    diferencia_promedio_dim_6_usach = out['porcentaje_promedio_dim_6'] - porcentaje_promedio_dim_6_usach
+    diferencia_promedio_dim_7_usach = out['porcentaje_promedio_dim_7'] - porcentaje_promedio_dim_7_usach
+    diferencia_promedio_dim_8_usach = out['porcentaje_promedio_dim_8'] - porcentaje_promedio_dim_8_usach
+
+
+    # Se agregan las diferencias con los valores globales de la Universidad
+    out = pd.merge(out, diferencia_puntaje_total_usach.rename('DIFERENCIA_PUNTAJE_TOTAL_USACH'), how='left', on='CARRERA')
+    out = pd.merge(out, diferencia_porcentaje_de_logro_usach.rename('DIFERENCIA_PORCENTAJE_DE_LOGRO_USACH'), how='left', on='CARRERA')
+    out = pd.merge(out,diferencia_promedio_dim_1_usach.rename('diferencia_promedio_dim_1_usach'), how='left', on='CARRERA')
+    out = pd.merge(out,diferencia_promedio_dim_2_usach.rename('diferencia_promedio_dim_2_usach'), how='left', on='CARRERA')
+    out = pd.merge(out,diferencia_promedio_dim_3_usach.rename('diferencia_promedio_dim_3_usach'), how='left', on='CARRERA')
+    out = pd.merge(out,diferencia_promedio_dim_4_usach.rename('diferencia_promedio_dim_4_usach'), how='left', on='CARRERA')
+    out = pd.merge(out,diferencia_promedio_dim_5_usach.rename('diferencia_promedio_dim_5_usach'), how='left', on='CARRERA')
+    out = pd.merge(out,diferencia_promedio_dim_6_usach.rename('diferencia_promedio_dim_6_usach'), how='left', on='CARRERA')
+    out = pd.merge(out,diferencia_promedio_dim_7_usach.rename('diferencia_promedio_dim_7_usach'), how='left', on='CARRERA')
+    out = pd.merge(out,diferencia_promedio_dim_8_usach.rename('diferencia_promedio_dim_8_usach'), how='left', on='CARRERA')
+
+    # Se realiza el merge solo con las carreras a las que les interesa la información
+    out = pd.merge(carreras_diagnostico, out, how='left', on='CARRERA')
+    out.reset_index(inplace=True)
+   
+    out = pd.merge(out, calculos_x_facultad, how='left', on='FACULTAD', left_index=True)
+    out.set_index('CARRERA', inplace=True)
+    # Calcular diferencia con FACULTADES
+    out['diferencia_puntaje_total_fac'] = out['puntaje_total_promedio'] - out['puntaje_total_promedio_fac']
+    out['diferencia_porcentaje_de_logro_fac'] = out['porcentaje_de_logro_promedio'] - out['porcentaje_de_logro_promedio_fac']
+
+    out['diferencia_promedio_dim_1_fac'] = out['porcentaje_promedio_dim_1'] - out['porcentaje_promedio_dim_1_fac']
+    out['diferencia_promedio_dim_2_fac'] = out['porcentaje_promedio_dim_2'] - out['porcentaje_promedio_dim_2_fac']
+    out['diferencia_promedio_dim_3_fac'] = out['porcentaje_promedio_dim_3'] - out['porcentaje_promedio_dim_3_fac']
+    out['diferencia_promedio_dim_4_fac'] = out['porcentaje_promedio_dim_4'] - out['porcentaje_promedio_dim_4_fac']
+    out['diferencia_promedio_dim_5_fac'] = out['porcentaje_promedio_dim_5'] - out['porcentaje_promedio_dim_5_fac']
+    out['diferencia_promedio_dim_6_fac'] = out['porcentaje_promedio_dim_6'] - out['porcentaje_promedio_dim_6_fac']
+    out['diferencia_promedio_dim_7_fac'] = out['porcentaje_promedio_dim_7'] - out['porcentaje_promedio_dim_7_fac']
+    out['diferencia_promedio_dim_8_fac'] = out['porcentaje_promedio_dim_8'] - out['porcentaje_promedio_dim_8_fac']
+    
+    # CALCULAR CANTIDAD DE CASOS CRITICOS
+    
+    new_aux_data = aux_data[aux_data['PORCENTAJE_DE_LOGRO_(EA)'] < 0.6]
+    
+    estudiantes_con_puntaje_bajo = new_aux_data.groupby('CARRERA')['PORCENTAJE_DE_LOGRO_(EA)'].count()
+    
+    out = pd.merge(out,estudiantes_con_puntaje_bajo.rename('estudiantes_con_puntaje_bajo'), how='left', on='CARRERA')
+    out['porcentaje_estudiantes_con_puntaje_bajo'] = out['estudiantes_con_puntaje_bajo'] / out['INSCRITOS']
+    # FORMATEAR COLUMNAS PARA SALIDA
+    out.columns = _formatear_columnas(out.columns)
+    out = _formatear_data_set(out)
+    return out
