@@ -20,7 +20,7 @@ def _crear_grafico_radar_matematica_a(valores,carrera, ruta):
     '''
     
     # Radar escala no porcentual
-    nombre_salida = 'grafico-1-' + carrera.strip().lower().replace(' ','-')
+    nombre_salida = carrera.strip().lower().replace(' ','-') + 'grafico-1' 
     etiquetas = ["CARRERA", "FACULTAD", "USACH"]
     dimensiones = ["NÚMEROS", "ÁLGEBRA", "FUNCIONES", "GEOMETRÍA"]
     g = gr.crear_grafico_radar(valores, etiquetas, dimensiones, porcentaje=True)
