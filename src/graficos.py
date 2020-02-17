@@ -72,9 +72,11 @@ def guardar_grafico(figura, nombre, ruta=None):
     """
     if ruta is None:
         figura.savefig(nombre + FORMATO_IMAGEN, bbox_inches='tight')
+        del(figura)
     else:
         figura.savefig(ruta + "//" + nombre + FORMATO_IMAGEN,
                        bbox_inches='tight')
+        del(figura)
 
 
 def agregar_leyenda(figura):

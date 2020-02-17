@@ -115,6 +115,21 @@ def _limpiar_data_frame(base):
                             for c in base.columns]
     base.columns = [c.strip().upper().replace('__', '_') 
                             for c in base.columns]
+    # Pensé en eliminar todas las tildes de los nombre de las columnas
+    # pero ni Python ni pandas tienen problemas con unicode, así que lo dejé
+    # comentado, por si más tarde, se necesita
+    '''
+    base.columns = [c.strip().upper().replace('Á', 'A') 
+                            for c in base.columns]
+    base.columns = [c.strip().upper().replace('É', 'E') 
+                            for c in base.columns]
+    base.columns = [c.strip().upper().replace('Í', 'I') 
+                            for c in base.columns]
+    base.columns = [c.strip().upper().replace('Ó', 'O') 
+                            for c in base.columns]
+    base.columns = [c.strip().upper().replace('Ú', 'U') 
+                            for c in base.columns]
+    '''
     base.columns = _eliminar_ambiguedades(base.columns)
     return base
 

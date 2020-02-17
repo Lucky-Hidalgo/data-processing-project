@@ -16,6 +16,12 @@ def _formatear_data_set(data):
     data.fillna(0, inplace=True)
     return data
 
+
+def guardar_resumen(data, nombre_archivo, nombre_hoja):
+    data.columns = _formatear_columnas(data.columns)
+    data.to_excel(nombre_archivo + '.xlsx', sheet_name=nombre_hoja[0:30],  index=True)
+    return True
+
 def crear_df_carreras(data):
     # Crea dataframe para almacenar resultados, con columnas
     # CARRERA (Index)
@@ -48,7 +54,7 @@ def crear_df_carreras(data):
     out = pd.merge(out, another_df, how='left', on='CARRERA')
     i = 0
     while i < 5 :
-        # Se crea una serie con la gente que respondió el socioeducativo
+        # Se crea una serie con la gente que respondió cada diagnóstico
         aux = new_df.groupby('CARRERA')[diagnosticos[i]].value_counts()
         # Se convierte a DF
         aux = pd.DataFrame(aux)
@@ -77,10 +83,87 @@ def crear_df_carreras(data):
 
         out = out.merge(aux, left_index=True, right_index=True)
         
-
-    
+    # TERMINAR CON TODAS LAS COLUMNAS EN MAYÚSCULA
+    out.columns = [c.upper() for c in out.columns]
     return out
 
+
+def crear_df_estadisticas_generales(data, resumen):
+    # Función que crea el dataframe con el resumen de las estadísticas generales
+    # que sirven para la generación de todos los reportes
+    vias_ingreso = ['CUPO BEA',			
+                    'CUPO DEPORTE',			
+                    'CUPO EXPLORA',			
+                    'CUPO HIJO FUNC.',			
+                    'CUPO INDIGENA',		
+                    'CUPO OFICIO DEMRE',			
+                    'CUPO P.S.U',			
+                    'CUPO PACE',			
+                    'CUPO PARES',			
+                    'CUPO PROPEDEUTICO',			
+                    'CUPO R850',			
+                    'PROSECUCION ESTUDIOS',			
+                    'OTROS',			
+                    ]
+
+    # SEXO
+
+    # FEMENINO
+    aux_data = data[data['SEXO'] == 'FEMENINO']
+    # CARRERA
+    aux_serie = aux_data.groupby('CARRERA')['SEXO'].count()
+    out = pd.merge(resumen, aux_serie.rename('femenino'), how='left', on='CARRERA')
+     
+    # FACULTAD
+    aux_serie = aux_data.groupby('FACULTAD')['SEXO'].count()
+    out.reset_index(inplace=True)
+   
+    out = pd.merge(out, aux_serie.rename('femenino_fac'), how='left', on='FACULTAD', left_index=True)
+    out.set_index('CARRERA', inplace=True)
+    # USACH
+    out['femenino_usach'] = aux_data['SEXO'].count()
+    # MASCULINO
+    aux_data = data[data['SEXO'] == 'MASCULINO']
+    # CARRERA
+    aux_serie = aux_data.groupby('CARRERA')['SEXO'].count()
+    out = pd.merge(out, aux_serie.rename('masculino'), how='left', on='CARRERA')
+     
+    # FACULTAD
+    aux_serie = aux_data.groupby('FACULTAD')['SEXO'].count()
+    out.reset_index(inplace=True)
+   
+    out = pd.merge(out, aux_serie.rename('masculino_fac'), how='left', on='FACULTAD', left_index=True)
+    out.set_index('CARRERA', inplace=True)
+    # USACH
+    out['masculino_usach'] = aux_data['SEXO'].count()
+
+    # EDAD
+    # PENDIENTE AÚN
+
+    # VIA INGRESO
+    i = 0
+    while i < len(vias_ingreso):
+        columna = vias_ingreso[i]
+        aux_data = data[data['VIA_INGRESO'] == vias_ingreso[i]] 
+        # CARRERA
+        aux_serie = aux_data.groupby('CARRERA')['VIA_INGRESO'].count()
+        out = pd.merge(out, aux_serie.rename(columna), how='left', on='CARRERA')
+        # FACULTAD
+        
+        aux_serie = aux_data.groupby('FACULTAD')['VIA_INGRESO'].count()
+        out.reset_index(inplace=True)
+        out = pd.merge(out, aux_serie.rename(columna+'_fac'), how='left', on='FACULTAD')
+        out.set_index('CARRERA', inplace=True)
+        # USACH
+        out[columna + '_usach'] = aux_data['VIA_INGRESO'].count()
+        i = i + 1
+
+    # FORMATEAR COLUMNAS PARA SALIDA
+    # TERMINAR CON TODAS LAS COLUMNAS EN MAYÚSCULA
+    out.columns = [c.upper() for c in out.columns]
+    out = _formatear_data_set(out)
+
+    return out
 
 def crear_resumen_matematica_a(data, resumen):
 
@@ -273,8 +356,8 @@ def crear_resumen_matematica_a(data, resumen):
     
     out = pd.merge(out,estudiantes_con_puntaje_bajo.rename('estudiantes_con_puntaje_bajo'), how='left', on='CARRERA')
     out['porcentaje_estudiantes_con_puntaje_bajo'] = out['estudiantes_con_puntaje_bajo'] / out['INSCRITOS']
-    # FORMATEAR COLUMNAS PARA SALIDA
-    out.columns = _formatear_columnas(out.columns)
+    # TERMINAR CON TODAS LAS COLUMNAS EN MAYÚSCULA
+    out.columns = [c.upper() for c in out.columns]
     out = _formatear_data_set(out)
     return out
 
@@ -443,9 +526,10 @@ def crear_resumen_matematica_b(data, resumen):
     
     out = pd.merge(out,estudiantes_con_puntaje_bajo.rename('estudiantes_con_puntaje_bajo'), how='left', on='CARRERA')
     out['porcentaje_estudiantes_con_puntaje_bajo'] = out['estudiantes_con_puntaje_bajo'] / out['INSCRITOS']
-    # FORMATEAR COLUMNAS PARA SALIDA
-    out.columns = _formatear_columnas(out.columns)
+    # CAMBIAR VALORES NAN POR 0s
     out = _formatear_data_set(out)
+    # TERMINAR CON TODAS LAS COLUMNAS EN MAYÚSCULA
+    out.columns = [c.upper() for c in out.columns]
     return out
 
 
@@ -608,8 +692,8 @@ def crear_resumen_pensamiento_cientifico(data, resumen):
     
     out = pd.merge(out,estudiantes_con_puntaje_bajo.rename('estudiantes_con_puntaje_bajo'), how='left', on='CARRERA')
     out['porcentaje_estudiantes_con_puntaje_bajo'] = out['estudiantes_con_puntaje_bajo'] / out['INSCRITOS']
-    # FORMATEAR COLUMNAS PARA SALIDA
-    out.columns = _formatear_columnas(out.columns)
+    # TERMINAR CON TODAS LAS COLUMNAS EN MAYÚSCULA
+    out.columns = [c.upper() for c in out.columns]
     out = _formatear_data_set(out)
     return out
 
@@ -744,7 +828,7 @@ def crear_resumen_escritura_academica(data, resumen):
     
     out = pd.merge(out,estudiantes_con_puntaje_bajo.rename('estudiantes_con_puntaje_bajo'), how='left', on='CARRERA')
     out['porcentaje_estudiantes_con_puntaje_bajo'] = out['estudiantes_con_puntaje_bajo'] / out['INSCRITOS']
-    # FORMATEAR COLUMNAS PARA SALIDA
-    out.columns = _formatear_columnas(out.columns)
+    # TERMINAR CON TODAS LAS COLUMNAS EN MAYÚSCULA
+    out.columns = [c.upper() for c in out.columns]
     out = _formatear_data_set(out)
     return out
