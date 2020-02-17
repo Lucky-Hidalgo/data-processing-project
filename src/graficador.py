@@ -20,7 +20,7 @@ def _crear_grafico_radar_matematica_a(valores,carrera, ruta):
     '''
     
     # Radar escala no porcentual
-    nombre_salida = carrera.strip().lower().replace(' ','-') + 'grafico-1' 
+    nombre_salida = carrera.strip().lower().replace(' ','-') + '-grafico-1' 
     etiquetas = ["CARRERA", "FACULTAD", "USACH"]
     dimensiones = ["NÚMEROS", "ÁLGEBRA", "FUNCIONES", "GEOMETRÍA"]
     g = gr.crear_grafico_radar(valores, etiquetas, dimensiones, porcentaje=True)
@@ -30,6 +30,9 @@ def _crear_grafico_radar_matematica_a(valores,carrera, ruta):
     return True
     
 def _obtener_datos_radar_matematica_a(data,carrera):
+    # Función que obtiene la matriz de valores que el gráfico necesita
+    # y  que los multiplica por 100 para que representen porcentaje
+    # Obtengo los datos
     datos_carrera = [
             data.loc[carrera, 'PORCENTAJE_PROMEDIO_EJE_1'],
             data.loc[carrera, 'PORCENTAJE_PROMEDIO_EJE_2'],
@@ -48,7 +51,10 @@ def _obtener_datos_radar_matematica_a(data,carrera):
             data.loc[carrera, 'PORCENTAJE_PROMEDIO_EJE_3_USACH'],
             data.loc[carrera, 'PORCENTAJE_PROMEDIO_EJE_4_USACH'],
         ]
-    return [datos_carrera, datos_facultad, datos_usach]
+    # Multiplico x 100
+    valores = [datos_carrera, datos_facultad, datos_usach]
+    valores = [list(map(lambda x : x * 100, row)) for row in valores]
+    return valores
 
 
 def _crear_graficos_matematica_a(data, ruta):

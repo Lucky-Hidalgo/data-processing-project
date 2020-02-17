@@ -6,7 +6,7 @@ import graficador as gr
 
 # TODO: CAMBIAR POR SELECCIÓN DE CONFIGURACIÓN
 
-ARCHIVO_ENTRADA = 'C:/Users/LuHid/Documents/Github/data-processing-project/salida-big-1-output.xlsx'
+ARCHIVO_ENTRADA = 'C:/Users/LuHid/Documents/Github/data-processing-project/salida-big-2-output.xlsx'
 PATH_SALIDA = 'C:/Users/LuHid/Documents/Github/data-processing-project'
 PATH_OUT = 'OUT'
 

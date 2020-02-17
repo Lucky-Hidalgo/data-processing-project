@@ -15,6 +15,15 @@ TAMANO_IMAGEN = (10, 10)
 
 
 # Funciones de uso interno del módulo
+
+def _cerrar_figura(figura):
+    # Libera la memoria de la figura para evitar problemas de rendimiento en loops masivos
+
+    figura.clf()
+    del figura
+    return True
+
+
 def _generar_angulos(cantidad_dimensiones):
     # Genera ángulos para cada dimensión en gráficos de radar
     angulos = []
@@ -72,11 +81,12 @@ def guardar_grafico(figura, nombre, ruta=None):
     """
     if ruta is None:
         figura.savefig(nombre + FORMATO_IMAGEN, bbox_inches='tight')
-        del(figura)
+        
     else:
         figura.savefig(ruta + "//" + nombre + FORMATO_IMAGEN,
                        bbox_inches='tight')
-        del(figura)
+    _cerrar_figura(figura)
+        
 
 
 def agregar_leyenda(figura):
