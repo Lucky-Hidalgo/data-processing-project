@@ -23,5 +23,5 @@ resultados_pensamiento_cientifico = ci.crear_resumen_pensamiento_cientifico(data
 resultados_escritura_academica = ci.crear_resumen_escritura_academica(data, df_carreras)
 
 print('PASO')
-
+resultados_matematica_a.to_excel('resultados_matematica_a.xlsx', sheet_name='RESULTADOS_MA', index=True)
 gr.ejecutar_proceso_graficos_matematica_a(resultados_matematica_a, PATH_SALIDA)

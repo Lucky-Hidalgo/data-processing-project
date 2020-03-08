@@ -232,7 +232,8 @@ def crear_resumen_matematica_a(data, resumen):
         porcentaje_promedio_obj_5_fac = ('PORCENTAJE_DE_LOGRO_OBJETIVO_5_(MA)', 'mean'),
         porcentaje_promedio_obj_6_fac = ('PORCENTAJE_DE_LOGRO_OBJETIVO_6_(MA)', 'mean'),
         porcentaje_promedio_obj_7_fac = ('PORCENTAJE_DE_LOGRO_OBJETIVO_7_(MA)', 'mean'),
-        porcentaje_promedio_obj_8_fac = ('PORCENTAJE_DE_LOGRO_OBJETIVO_8_(MA)', 'mean')
+        porcentaje_promedio_obj_8_fac = ('PORCENTAJE_DE_LOGRO_OBJETIVO_8_(MA)', 'mean'),
+        porcentaje_promedio_obj_9_fac = ('PORCENTAJE_DE_LOGRO_OBJETIVO_9_(MA)', 'mean')
     )
 
     out = aux_data.groupby('CARRERA').agg(
@@ -253,7 +254,8 @@ def crear_resumen_matematica_a(data, resumen):
         porcentaje_promedio_obj_5 = ('PORCENTAJE_DE_LOGRO_OBJETIVO_5_(MA)', 'mean'),
         porcentaje_promedio_obj_6 = ('PORCENTAJE_DE_LOGRO_OBJETIVO_6_(MA)', 'mean'),
         porcentaje_promedio_obj_7 = ('PORCENTAJE_DE_LOGRO_OBJETIVO_7_(MA)', 'mean'),
-        porcentaje_promedio_obj_8 = ('PORCENTAJE_DE_LOGRO_OBJETIVO_8_(MA)', 'mean')
+        porcentaje_promedio_obj_8 = ('PORCENTAJE_DE_LOGRO_OBJETIVO_8_(MA)', 'mean'),
+        porcentaje_promedio_obj_9 = ('PORCENTAJE_DE_LOGRO_OBJETIVO_9_(MA)', 'mean')
                
     )
     # Se calculan los valores para todos los datos del conjunto
@@ -272,7 +274,8 @@ def crear_resumen_matematica_a(data, resumen):
     porcentaje_promedio_obj_5_usach = aux_data['PORCENTAJE_DE_LOGRO_OBJETIVO_5_(MA)'].mean()
     porcentaje_promedio_obj_6_usach = aux_data['PORCENTAJE_DE_LOGRO_OBJETIVO_6_(MA)'].mean()
     porcentaje_promedio_obj_7_usach = aux_data['PORCENTAJE_DE_LOGRO_OBJETIVO_7_(MA)'].mean()
-    porcentaje_promedio_obj_8_usach = aux_data['PORCENTAJE_DE_LOGRO_OBJETIVO_8_(MA)'].mean() 
+    porcentaje_promedio_obj_8_usach = aux_data['PORCENTAJE_DE_LOGRO_OBJETIVO_8_(MA)'].mean()
+    porcentaje_promedio_obj_9_usach = aux_data['PORCENTAJE_DE_LOGRO_OBJETIVO_9_(MA)'].mean()
 
     # Se agregan los valores globales de la usach como columna en cada caso
     out['puntaje_total_promedio_usach'] = puntaje_total_promedio_usach
@@ -289,6 +292,7 @@ def crear_resumen_matematica_a(data, resumen):
     out['porcentaje_promedio_obj_6_usach'] = porcentaje_promedio_obj_6_usach
     out['porcentaje_promedio_obj_7_usach'] = porcentaje_promedio_obj_7_usach
     out['porcentaje_promedio_obj_8_usach'] = porcentaje_promedio_obj_8_usach
+    out['porcentaje_promedio_obj_9_usach'] = porcentaje_promedio_obj_9_usach
 
     # Se calculan los valores de diferencia con la usach
     diferencia_puntaje_total_usach = out['puntaje_total_promedio'] - puntaje_total_promedio_usach
@@ -305,6 +309,7 @@ def crear_resumen_matematica_a(data, resumen):
     diferencia_promedio_obj_6_usach = out['porcentaje_promedio_obj_6'] - porcentaje_promedio_obj_6_usach
     diferencia_promedio_obj_7_usach = out['porcentaje_promedio_obj_7'] - porcentaje_promedio_obj_7_usach
     diferencia_promedio_obj_8_usach = out['porcentaje_promedio_obj_8'] - porcentaje_promedio_obj_8_usach
+    diferencia_promedio_obj_9_usach = out['porcentaje_promedio_obj_9'] - porcentaje_promedio_obj_9_usach
     
 
     
@@ -323,6 +328,7 @@ def crear_resumen_matematica_a(data, resumen):
     out = pd.merge(out,diferencia_promedio_obj_6_usach.rename('diferencia_promedio_obj_6_usach'), how='left', on='CARRERA')
     out = pd.merge(out,diferencia_promedio_obj_7_usach.rename('diferencia_promedio_obj_7_usach'), how='left', on='CARRERA')
     out = pd.merge(out,diferencia_promedio_obj_8_usach.rename('diferencia_promedio_obj_8_usach'), how='left', on='CARRERA')
+    out = pd.merge(out,diferencia_promedio_obj_9_usach.rename('diferencia_promedio_obj_9_usach'), how='left', on='CARRERA')
 
 
     # Se realiza el merge solo con las carreras a las que les interesa la información
@@ -347,6 +353,7 @@ def crear_resumen_matematica_a(data, resumen):
     out['diferencia_promedio_obj_6_fac'] = out['porcentaje_promedio_obj_6'] - out['porcentaje_promedio_obj_6_fac']
     out['diferencia_promedio_obj_7_fac'] = out['porcentaje_promedio_obj_7'] - out['porcentaje_promedio_obj_7_fac']
     out['diferencia_promedio_obj_8_fac'] = out['porcentaje_promedio_obj_8'] - out['porcentaje_promedio_obj_8_fac']
+    out['diferencia_promedio_obj_9_fac'] = out['porcentaje_promedio_obj_9'] - out['porcentaje_promedio_obj_9_fac']
 
     # CALCULAR CANTIDAD DE CASOS CRITICOS
     
