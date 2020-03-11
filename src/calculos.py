@@ -165,6 +165,134 @@ def crear_df_estadisticas_generales(data, resumen):
 
     return out
 
+
+def crear_resumen_socioeducativo(data, resumen):
+    # Los cálculos resumidos se hacen para todos, pero solo se agregan
+    # a los que alcancen esta tasa mínima
+    condicion = resumen['SI_SE'] > resumen['INSCRITOS'] * TASA_DE_TOLERANCIA
+    
+    carreras_diagnostico = resumen[condicion]
+
+    carreras_diagnostico = carreras_diagnostico.filter(['CARRERA',
+                                                        'FACULTAD',
+                                                        'INSCRITOS',
+                                                        'SI_SE',
+                                                        'NO_SE'])
+
+    columnas = list(data.columns)
+    columnas =  ['CARRERA', 'FACULTAD'] + columnas[columnas.index('RESPONDIÓ_CUESTIONARIO_SOCIOEDUCATIVO'):columnas.index('RESPONDIÓ_MATEMÁTICA_"A"')]
+    aux_data  = data.filter(columnas)
+
+    
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2']!='']
+    aux = aux.groupby('CARRERA')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2'].value_counts(normalize=True)
+    aux = pd.DataFrame(aux)
+    aux.index = aux.index.set_names(['CARRERA', 'RESPUESTA'])
+    aux.reset_index(inplace=True)
+    aux = aux.pivot(index='CARRERA', 
+                    columns='RESPUESTA', 
+                    values='CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2')
+    out = pd.merge(carreras_diagnostico, aux, how='left', on='CARRERA')
+    '''
+    # FEMENINO
+    aux_data = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2'] == 'FEMENINO']
+    # CARRERA
+    aux_serie = aux_data.groupby('CARRERA')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2'].count()
+    out = pd.merge(carreras_diagnostico, aux_serie.rename('femenino'), how='left', on='CARRERA')
+     
+    # FACULTAD
+    aux_serie = aux_data.groupby('FACULTAD')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2'].count()
+    out.reset_index(inplace=True)
+   
+    out = pd.merge(out, aux_serie.rename('femenino_fac'), how='left', on='FACULTAD', left_index=True)
+    out.set_index('CARRERA', inplace=True)
+    # USACH
+    out['femenino_usach'] = aux_data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2'].count()
+
+    # MASCULINO
+    aux_data = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2'] == 'MASCULINO']
+    # CARRERA
+    aux_serie = aux_data.groupby('CARRERA')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2'].count()
+    out = pd.merge(out, aux_serie.rename('masculino'), how='left', on='CARRERA')
+     
+    # FACULTAD
+    aux_serie = aux_data.groupby('FACULTAD')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2'].count()
+    out.reset_index(inplace=True)
+   
+    out = pd.merge(out, aux_serie.rename('masculino_fac'), how='left', on='FACULTAD', left_index=True)
+    out.set_index('CARRERA', inplace=True)
+    # USACH
+    out['masculino_usach'] = aux_data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2'].count()
+
+    # OTRO 
+    aux_data = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2'] == 'OTRO']
+    # CARRERA
+    aux_serie = aux_data.groupby('CARRERA')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2'].count()
+    out = pd.merge(out, aux_serie.rename('otro'), how='left', on='CARRERA')
+     
+    # FACULTAD
+    aux_serie = aux_data.groupby('FACULTAD')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2'].count()
+    out.reset_index(inplace=True)
+    out = pd.merge(out, aux_serie.rename('otro_fac'), how='left', on='FACULTAD', left_index=True)
+    out.set_index('CARRERA', inplace=True)
+    # USACH
+    out['otro_usach'] = aux_data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2'].count()
+    '''
+    # EDAD 
+    # CARRERA
+    aux_serie = aux_data.groupby('CARRERA')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_3'].mean()
+    out = pd.merge(out, aux_serie.rename('edad'), how='left', on='CARRERA')
+    # FACULTAD
+    aux_serie = aux_data.groupby('FACULTAD')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_3'].mean()
+    out.reset_index(inplace=True)
+    out = pd.merge(out, aux_serie.rename('edad_fac'), how='left', on='FACULTAD', left_index=True)
+    out.set_index('CARRERA', inplace=True)
+    # USACH
+    out['edad_usach'] = aux_data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_3'].mean()
+
+    # NACIONALIDAD
+    # Chileno (a)
+    aux_data = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_4'] == 'CHILENO(A)']
+    aux_total = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_4'] != '']
+    # CARRERA
+    aux_serie = aux_data.groupby('CARRERA')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_4'].count()
+    aux_serie2 = aux_total.groupby('CARRERA')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_4'].count()
+    aux_serie = aux_serie / aux_serie2
+    out = pd.merge(out, aux_serie.rename('chileno'), how='left', on='CARRERA')
+     
+    # FACULTAD
+    aux_serie = aux_data.groupby('FACULTAD')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_4'].count()
+    aux_serie2 = aux_total.groupby('FACULTAD')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_4'].count()
+    aux_serie = aux_serie / aux_serie2
+    out.reset_index(inplace=True)
+    out = pd.merge(out, aux_serie.rename('chileno_fac'), how='left', on='FACULTAD', left_index=True)
+    out.set_index('CARRERA', inplace=True)
+    # USACH
+    out['chileno_usach'] = aux_data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_4'].count() / aux_total['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_4'].count()
+    # Extranjero (a)
+    aux_data = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_4'] != 'CHILENO(A)']
+    aux_data = aux_data[aux_data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_4'] != '']
+    # CARRERA
+    aux_serie = aux_data.groupby('CARRERA')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_4'].count()
+    aux_serie2 = aux_total.groupby('CARRERA')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_4'].count()
+    aux_serie = aux_serie / aux_serie2
+    out = pd.merge(out, aux_serie.rename('extranjero'), how='left', on='CARRERA')
+     
+    # FACULTAD
+    aux_serie = aux_data.groupby('FACULTAD')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_4'].count()
+    aux_serie2 = aux_total.groupby('FACULTAD')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_4'].count()
+    aux_serie = aux_serie / aux_serie2
+    out.reset_index(inplace=True)
+   
+    out = pd.merge(out, aux_serie.rename('extranjero_fac'), how='left', on='FACULTAD', left_index=True)
+    out.set_index('CARRERA', inplace=True)
+    # USACH
+    out['extranjero_usach'] = aux_data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_4'].count() / aux_total['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_4'].count()
+
+
+    return out
+
+
 def crear_resumen_matematica_a(data, resumen):
 
     # Los calculos resumidos se hacen para todos, pero solo se agregan 

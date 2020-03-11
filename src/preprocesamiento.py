@@ -138,6 +138,7 @@ def _limpiar_columnas_string(base, nombre_columna):
     # Elimina caracteres especiales al inicio y al final
     # Cambia todo a mayúsculas
     # Reemplaza caracteres especiales
+    base[nombre_columna] = base[nombre_columna].apply(lambda x: '' if pd.isnull(x) else str(x))
     base[nombre_columna] = base[nombre_columna].apply(lambda x: x.strip())
     base[nombre_columna] = base[nombre_columna].apply(lambda x: x.upper())
     base[nombre_columna] = base[nombre_columna].apply(lambda x: x.replace('/', ' - '))
@@ -163,11 +164,38 @@ def escribir_resultados_filtrados(data, diccionario_facultades, path):
 
 
 def leer_data_frame(ruta):
-    # Función que lee el dataframe
+    # Función que lee el dataframe y realiza limpieza básica
+    columnas_string = ['FACULTAD', 
+                        'CARRERA',
+                        'DEPENDENCIA', 
+                        'CONSENTIMIENTO_INFORMADO', 
+                        'RESPONDIÓ_CUESTIONARIO_SOCIOEDUCATIVO',
+                        'CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2', 
+                        'CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_4',
+                        'CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_5',
+                        'CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_6',
+                        'CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_7',
+                        'CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_8',
+                        'CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_9',
+                        'CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_10',
+                        'CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_11',
+                        'CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_12',
+                        'CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_13',
+                        'CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_14',
+                        'CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_15',
+                        'CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_16',
+                        'CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_17',
+                        'CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_18',
+                        'CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_19',
+                        'CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_20',
+                        ]
     data = pd.read_excel(ruta, index_col=0)
     data = _limpiar_data_frame(data)
-    data = _limpiar_columnas_string(data, 'FACULTAD')
-    data = _limpiar_columnas_string(data, 'CARRERA')
+    
+    for valor in columnas_string :
+        
+        data = _limpiar_columnas_string(data, valor)
+    
     return data
 
 
