@@ -3,8 +3,8 @@ import random
 import numpy as np
 
 
-NOMBRE_ARCHIVO_ENTRADA = 'salida-big-1.xlsx'
-NOMBRE_ARCHIVO_SALIDA = 'salida-big-1-output.xlsx'
+NOMBRE_ARCHIVO_ENTRADA = 'salida-big-2.xlsx'
+NOMBRE_ARCHIVO_SALIDA = 'salida-big-2-output.xlsx'
 
 columnas_socioeducativo = [
         "RESPONDIÓ CUESTIONARIO SOCIOEDUCATIVO",
@@ -333,19 +333,28 @@ def responderSocioeducativo(index):
                     'Brasileño(a)', 'Ecuatoriano(a)'
                     ]
     binario = ['Sí','No']
-    opc_pregunta12 = ['Otra Institución de Educación superior','USACH']
-    opc_pregunta14 = ['Con mi madre y/o mi padre',
+    opc_pregunta12 = ['En esta misma universidad',
+                       'En otra universidad',
+                       'En un Centro de Formación Técnica (CFT) o Instituto Profesional (IP)',
+                       'En otra institución de Educación Superior'
+                     ]
+    opc_pregunta14 = ['Mi madre y/o mi padre',
+                    'Un familiar cercano (por ej. abuelos/as, hermanos/as, tíos/as)',
+                    'Yo',
+                    'Otro'
+                    ]
+    opc_pregunta15 = ['Con mi madre y/o mi padre',
                     'Con otro familiar cercano (por ej. abuelos/as, hermanos/as, tíos/as)',
                     'Con mi pareja o amigos/as',
                     'Solo/a',
                     'Con otras personas no cercanas (por ej. pensión)'
                     ]
-    opc_pregunta19 = ['Sostener económicamente a mi familia o hijo(a)',
-                    'Financiar mis estudios',
-                    'Aportar económicamente a mi hogar',
-                    'Costear gastos personales (transporte, vestimenta, alimentación, esparcimiento)',
+    opc_pregunta19 = ['Necesito sostener económicamente a mi familia o hijo(a)',
+                    'Necesito financiar mis estudios',
+                    'Necesito aportar económicamente a mi hogar',
+                    'Necesito costear gastos personales (transporte, vestimenta, alimentación, esparcimiento)',
                     'Otro motivo'
-    ]
+                    ]
 
     # Se genera un random para representar casos que no respondieron
     if random.random() < 0.05 :
@@ -372,7 +381,12 @@ def responderSocioeducativo(index):
     # Pregunta 5: 
     lista.append(random.choice(binario))
     # Pregunta 6: 
-    lista.append(random.choice(binario))
+    if random.random() < 0.09 :
+        lista.append(random.choice(['Sí', 
+                                'No, pero pertenezco a un pueblo originario.',
+                                'No poseo certificado, ni pertenezco a un pueblo originario']))
+    else :
+        lista.append('Sí')
     # Pregunta 7: 
     lista.append(random.choice(binario))
     # Pregunta 8: 
@@ -382,38 +396,66 @@ def responderSocioeducativo(index):
     # Pregunta 10: 
     lista.append(random.choice(binario))
     # Pregunta 11: 
-    lista.append(random.choice(binario))
+    if random.random() < 0.35 : 
+        lista.append('Sí')
+    else :
+        lista.append('No')
     # Pregunta 12:
-    lista.append(random.choice(opc_pregunta12))
+    if lista[-1] == 'Sí' :
+        lista.append(random.choice(opc_pregunta12))
+    else :
+        lista.append('')
     # Pregunta 13:
     lista.append(random.choice(binario))
     # Pregunta 14: ¿Con quien vivirás durante el año académico?
     var_preg14 = random.random()
-    if var_preg14 > 0.5 :
+    if var_preg14 > 0.4 :
        
         lista.append(opc_pregunta14[0])
-    elif var_preg14 > 0.4 :
+    elif var_preg14 > 0.3 :
         lista.append(opc_pregunta14[1])
-    elif var_preg14 > 0.25 :
+    elif var_preg14 > 0.15 :
         lista.append(opc_pregunta14[2])
-    elif var_preg14 > 0.1 :
-        lista.append( opc_pregunta14[3])
     else :
-        lista.append(opc_pregunta14[4])
+        lista.append(opc_pregunta14[3])
     # Pregunta 15: 
-    lista.append( '' )
+    var_preg15 = random.random()
+    if var_preg15 > 0.5 :
+        lista.append(opc_pregunta15[0])
+    elif var_preg15 > 0.4 :
+        lista.append(opc_pregunta15[1])
+    elif var_preg15 > 0.25 :
+        lista.append(opc_pregunta15[2])
+    elif var_preg15 > 0.15 :
+        lista.append(opc_pregunta15[3])
+    else :
+        lista.append(opc_pregunta15[4])
+
     # Pregunta 16: 
     lista.append( random.choice(binario))
     # Pregunta 17: 
     lista.append( random.choice(binario))
     # Pregunta 18: 
-    lista.append(random.choice(binario))
+    if random.random() < 0.45 :
+        lista.append('Sí')
+    else :
+        lista.append('No')
+
     # Pregunta 19
-    lista.append( random.choice(opc_pregunta19))
+    if lista[-1] == 'Sí' :
+        lista.append( random.choice(opc_pregunta19))
+    else :
+        lista.append('')
     # Pregunta 20:
     lista.append(random.choice(binario))
     # Preguntas 21 a 67
-    preguntasAdicionales = [random.randint(1, 5) for iter in range(47)]
+    preguntasAdicionales = [random.randint(1, 5) for iter in range(10)]
+    preguntasAdicionales += [random.randint(1, 4) for iter in range(4)]
+    preguntasAdicionales += [random.randint(1, 4) for iter in range(9)]
+    preguntasAdicionales += [random.randint(1, 4) for iter in range(4)]
+    preguntasAdicionales += [random.randint(1, 4) for iter in range(4)]
+    preguntasAdicionales += [random.randint(1, 5) for iter in range(12)]
+    preguntasAdicionales += [random.randint(1, 4) for iter in range(4)]
 
     lista = lista + preguntasAdicionales
 

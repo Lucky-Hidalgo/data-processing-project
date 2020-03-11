@@ -247,7 +247,7 @@ TODO = pd.DataFrame(
             'PROMEDIO PSU',
             'VIA INGRESO',
             'DEPENDENCIA',
-            'CONSENTIMIENTO INFORMADO'
+            'OPCIÓN CONSENTIMIENTO INFORMADO'
             )
         )
 for facultad in facultades.keys() :
