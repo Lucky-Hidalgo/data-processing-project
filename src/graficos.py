@@ -85,7 +85,7 @@ def guardar_grafico(figura, nombre, ruta=None):
     else:
         figura.savefig(ruta + "//" + nombre + FORMATO_IMAGEN,
                        bbox_inches='tight')
-    _cerrar_figura(figura)
+    plt.close(figura)
         
 
 
@@ -195,7 +195,7 @@ def crear_grafico_barras_verticales(valores, dimensiones, etiquetas=None,
     if isinstance(valores[0], (int, float)):
         valores = [valores]
     cantidad_instancias = len(valores)
-    figura = plt.figure(figsize=TAMANO_IMAGEN)
+    figura = plt.figure()
     eje = figura.add_subplot(1, 1, 1)
     gap = 0.8 / cantidad_instancias
     for i, instancia in enumerate(valores):
@@ -212,6 +212,7 @@ def crear_grafico_barras_verticales(valores, dimensiones, etiquetas=None,
             _etiquetar_barras(eje, grafico, "{0:.1f}")
     indices = np.arange(len(valores[0]))
     plt.xticks(indices, dimensiones)
+    plt.autoscale()
     return figura
 
 
@@ -298,4 +299,3 @@ def crear_grafico_barras_apiladas_horizontales(valores, dimensiones,
                  color=COLORES[i], label=etiquetas[i])
     plt.yticks(cantidad_dimensiones, dimensiones)
     return figura
-    

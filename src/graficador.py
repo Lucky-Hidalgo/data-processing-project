@@ -109,6 +109,7 @@ def _crear_grafico_barras_matematica_a(valores, carrera, ruta):
                      "OBJETIVO 4", "OBJETIVO 5", "OBJETIVO 6", "OBJETIVO 7", 
                     "OBJETIVO 8", "OBJETIVO 9"]
     g = gr.crear_grafico_barras_verticales(valores, dimensiones, etiquetas, porcentaje=True)
+    g.set_size_inches(30, 5)
     gr.agregar_leyenda(g)
     gr.agregar_titulo(g, "Comparación % de logro Pensamiento Matemático por objetivos")
     gr.guardar_grafico(g, nombre_salida, ruta)

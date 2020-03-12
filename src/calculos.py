@@ -183,7 +183,8 @@ def crear_resumen_socioeducativo(data, resumen):
     columnas =  ['CARRERA', 'FACULTAD'] + columnas[columnas.index('RESPONDIÓ_CUESTIONARIO_SOCIOEDUCATIVO'):columnas.index('RESPONDIÓ_MATEMÁTICA_"A"')]
     aux_data  = data.filter(columnas)
 
-    
+    # SEXO
+    # CARRERA
     aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2']!='']
     aux = aux.groupby('CARRERA')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2'].value_counts(normalize=True)
     aux = pd.DataFrame(aux)
@@ -193,51 +194,19 @@ def crear_resumen_socioeducativo(data, resumen):
                     columns='RESPUESTA', 
                     values='CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2')
     out = pd.merge(carreras_diagnostico, aux, how='left', on='CARRERA')
-    '''
-    # FEMENINO
-    aux_data = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2'] == 'FEMENINO']
-    # CARRERA
-    aux_serie = aux_data.groupby('CARRERA')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2'].count()
-    out = pd.merge(carreras_diagnostico, aux_serie.rename('femenino'), how='left', on='CARRERA')
-     
-    # FACULTAD
-    aux_serie = aux_data.groupby('FACULTAD')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2'].count()
-    out.reset_index(inplace=True)
-   
-    out = pd.merge(out, aux_serie.rename('femenino_fac'), how='left', on='FACULTAD', left_index=True)
-    out.set_index('CARRERA', inplace=True)
-    # USACH
-    out['femenino_usach'] = aux_data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2'].count()
 
-    # MASCULINO
-    aux_data = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2'] == 'MASCULINO']
-    # CARRERA
-    aux_serie = aux_data.groupby('CARRERA')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2'].count()
-    out = pd.merge(out, aux_serie.rename('masculino'), how='left', on='CARRERA')
-     
     # FACULTAD
-    aux_serie = aux_data.groupby('FACULTAD')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2'].count()
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2']!='']
+    aux = aux.groupby('FACULTAD')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2'].value_counts(normalize=True)
+    aux = pd.DataFrame(aux)
+    aux.index = aux.index.set_names(['FACULTAD', 'RESPUESTA'])
+    aux.reset_index(inplace=True)
+    aux = aux.pivot(index='FACULTAD', 
+                    columns='RESPUESTA', 
+                    values='CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2')
     out.reset_index(inplace=True)
-   
-    out = pd.merge(out, aux_serie.rename('masculino_fac'), how='left', on='FACULTAD', left_index=True)
-    out.set_index('CARRERA', inplace=True)
-    # USACH
-    out['masculino_usach'] = aux_data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2'].count()
+    out = pd.merge(carreras_diagnostico, aux, how='left', on='FACULTAD', left_index=True)
 
-    # OTRO 
-    aux_data = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2'] == 'OTRO']
-    # CARRERA
-    aux_serie = aux_data.groupby('CARRERA')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2'].count()
-    out = pd.merge(out, aux_serie.rename('otro'), how='left', on='CARRERA')
-     
-    # FACULTAD
-    aux_serie = aux_data.groupby('FACULTAD')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2'].count()
-    out.reset_index(inplace=True)
-    out = pd.merge(out, aux_serie.rename('otro_fac'), how='left', on='FACULTAD', left_index=True)
-    out.set_index('CARRERA', inplace=True)
-    # USACH
-    out['otro_usach'] = aux_data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2'].count()
-    '''
     # EDAD 
     # CARRERA
     aux_serie = aux_data.groupby('CARRERA')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_3'].mean()
