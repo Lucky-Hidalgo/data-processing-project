@@ -24,5 +24,6 @@ resultados_pensamiento_cientifico = ci.crear_resumen_pensamiento_cientifico(data
 resultados_escritura_academica = ci.crear_resumen_escritura_academica(data, df_carreras)'''
 resultados_se = ci.crear_resumen_socioeducativo(data, df_carreras)
 print('PASO')
-resultados_se.to_excel('resultados_socioeducativo.xlsx', sheet_name='RESULTADOS_SE', index=True)
+
+#resultados_se.to_excel('resultados_socioeducativo.xlsx', sheet_name='RESULTADOS_SE', index=True)
 # gr.ejecutar_proceso_graficos_matematica_a(resultados_matematica_a, PATH_SALIDA)

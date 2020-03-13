@@ -15,6 +15,7 @@ def _formatear_columnas(lista):
 
 def _formatear_data_set(data):
     data.fillna(0, inplace=True)
+    data.drop_duplicates(inplace=True)
     return data
 
 
@@ -1094,8 +1095,92 @@ def procesar_socioeducativo_preguntas_1_20(data, resumen):
     out = _formatear_data_set(out)
     return out
 
-
 def procesar_socioeducativo_preguntas_21_67(data, resumen):
+    # Los cálculos resumidos se hacen para todos, pero solo se agregan
+    # a los que alcancen esta tasa mínima
+    condicion = resumen['SI_SE'] > resumen['INSCRITOS'] * TASA_DE_TOLERANCIA
+    
+    carreras_diagnostico = resumen[condicion]
+
+    carreras_diagnostico = carreras_diagnostico.filter(['CARRERA',
+                                                        'FACULTAD'])
+    columnas = list(data.columns)
+    
+    columnas =  ['CARRERA', 'FACULTAD'] \
+        + columnas[columnas.index('CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_21'):columnas.index('CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_67') + 1]
+    aux_data = data.filter(columnas)
+    out = carreras_diagnostico
+    i = 21
+    while i <= 67 :
+        pregunta = 'CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_' + str(i)
+        nombre_columna = 'MEDIA_PREGUNTA_' + str(i)
+        # Elimino los nulos
+        aux = aux_data[aux_data[pregunta]!='']
+        # Calculo el promedio para las carreras
+        promedio = aux.groupby('CARRERA')[pregunta].mean()
+        out = pd.merge(out, promedio.rename(nombre_columna), how='left', on='CARRERA')
+        i = i + 1
+    aux_facultades = carreras_diagnostico
+    
+    i = 21
+    while i <= 67 :
+        pregunta = 'CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_' + str(i)
+        nombre_columna = 'MEDIA_PREGUNTA_' + str(i) + '_FAC'
+        # Elimino los nulos
+        aux = aux_data[aux_data[pregunta]!='']
+        # Calculo el promedio para las carreras
+        promedio = aux.groupby('FACULTAD')[pregunta].mean()
+        aux_facultades = pd.merge(aux_facultades, promedio.rename(nombre_columna), how='left', on='FACULTAD')
+        i = i + 1
+
+    out.reset_index(inplace=True)
+    out = pd.merge(out, aux_facultades, how='left', on='FACULTAD', left_index=True)
+    out.set_index('CARRERA', inplace=True)
+
+    i = 21
+    while i <= 67 :
+        pregunta = 'CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_' + str(i)
+        nombre_columna = 'MEDIA_PREGUNTA_' + str(i) + '_USACH'
+        # Elimino los nulos
+        aux = aux_data[aux_data[pregunta]!='']
+        # Calculo el promedio para las carreras
+        out[nombre_columna] = aux[pregunta].mean()
+        
+        i = i + 1
+    out.drop_duplicates(inplace=True)
+
+    # ENCONTRAR MÁXIMOS POR CATEGORÍA
+    # PROBLEMAS EN LA TRANSICION
+    columnas = list(out.columns)
+    inicio_categoria = columnas.index('MEDIA_PREGUNTA_21')
+    fin_categoria = columnas.index('MEDIA_PREGUNTA_30')
+    columnas = ['CARRERA'] + columnas[inicio_categoria: fin_categoria + 1]
+    filtrado = out.filter(columnas)
+    out['MAXIMO_PROBLEMAS_EN_LA_TRANSICION'] = filtrado.idxmax(axis=1)
+
+    # PREFERENCIAS DE ESTRATEGIAS DE ENSEÑANZA
+    columnas = list(out.columns)
+    inicio_categoria = columnas.index('MEDIA_PREGUNTA_48')
+    fin_categoria = columnas.index('MEDIA_PREGUNTA_51')
+    columnas = ['CARRERA'] + columnas[inicio_categoria: fin_categoria + 1]
+    filtrado = out.filter(columnas)
+    out['MAXIMO_ESTRATEGIAS_DE_ENSEÑANZA'] = filtrado.idxmax(axis=1)
+
+    # PREPARACIÓN TICS
+    columnas = list(out.columns)
+    inicio_categoria = columnas.index('MEDIA_PREGUNTA_64')
+    fin_categoria = columnas.index('MEDIA_PREGUNTA_67')
+    columnas = ['CARRERA'] + columnas[inicio_categoria: fin_categoria + 1]
+    filtrado = out.filter(columnas)
+    out['MAXIMO_PREPARACION_TICS'] = filtrado.idxmax(axis=1)
+
+    # TERMINAR CON TODAS LAS COLUMNAS EN MAYÚSCULA
+    out.columns = _formatear_columnas(out.columns)
+    out = _formatear_data_set(out)
+
+    return out
+
+def procesar_socioeducativo_escalas_autorreporte(data, resumen):
     # Los cálculos resumidos se hacen para todos, pero solo se agregan
     # a los que alcancen esta tasa mínima
     condicion = resumen['SI_SE'] > resumen['INSCRITOS'] * TASA_DE_TOLERANCIA
@@ -1106,9 +1191,8 @@ def procesar_socioeducativo_preguntas_21_67(data, resumen):
                                                         'FACULTAD'])
 
     columnas = list(data.columns)
+    
     columnas =  ['CARRERA', 'FACULTAD', 'VIA_DE_INGRESO', 'PROMEDIO_PSU', 'PUNTAJE_RANKING'] + columnas[columnas.index('CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_20'):columnas.index('NIVEL_ESCALA_USO_ACADÉMICO_DE_TECNOLOGÍA') + 1]
-    
-    
     aux_data  = data.filter(columnas)
 
     puntajes_de_escala = ['PUNTAJE_ESCALA_CONFLICTOS_TRANSICIÓN',
@@ -1120,8 +1204,12 @@ def procesar_socioeducativo_preguntas_21_67(data, resumen):
                 'PUNTAJE_ESCALA_ANSIEDAD_ACADÉMICA',
                 'PUNTAJE_ESCALA_SELECCIÓN_DE_IDEAS_PRINCIPALES',
                 'PUNTAJE_ESCALA_USO_ACADÉMICO_DE_TECNOLOGÍA']
-    i = 0
+
+    # PUNTAJES DE ESCALAS
+    # CARRERA
     out_puntajes = carreras_diagnostico 
+    i = 0
+    
     while i < len(puntajes_de_escala) :
         
         escala = puntajes_de_escala[i]
@@ -1130,22 +1218,62 @@ def procesar_socioeducativo_preguntas_21_67(data, resumen):
 
         columna = 'MEDIA_' + nombre_escala
         promedio = aux.groupby('CARRERA')[escala].mean()
-        #promedio = promedio.rename(columns={escala: columna})
         out_puntajes = pd.merge(out_puntajes, promedio.rename(columna), how='left', on='CARRERA')
 
         columna = 'PUNTAJE_MINIMO_' + nombre_escala
         minimo = aux.groupby('CARRERA')[escala].min()
-        #minimo = minimo.rename(columns={escala: columna})
         out_puntajes = pd.merge(out_puntajes, minimo.rename(columna), how='left', on='CARRERA')
 
         columna = 'PUNTAJE_MAXIMO_' + nombre_escala
         maximo = aux.groupby('CARRERA')[escala].max()
-        #maximo = maximo.rename(columns={escala: columna})
         out_puntajes = pd.merge(out_puntajes, maximo.rename(columna), how='left', on='CARRERA')
 
 
         i = i + 1
-  
+    # FACULTAD
+    i = 0
+    aux_facultades = carreras_diagnostico
+    while i < len(puntajes_de_escala) :
+        
+        escala = puntajes_de_escala[i]
+        nombre_escala = escala.replace('PUNTAJE_ESCALA_','')
+        aux = aux_data[aux_data[escala]!='']
+
+        columna = 'MEDIA_' + nombre_escala + '_FAC'
+        promedio = aux.groupby('FACULTAD')[escala].mean()
+        aux_facultades = pd.merge(aux_facultades, promedio.rename(columna), how='left', on='FACULTAD')
+
+        columna = 'PUNTAJE_MINIMO_' + nombre_escala + '_FAC'
+        minimo = aux.groupby('FACULTAD')[escala].min()
+        aux_facultades = pd.merge(aux_facultades, minimo.rename(columna), how='left', on='FACULTAD')
+
+        columna = 'PUNTAJE_MAXIMO_' + nombre_escala + '_FAC'
+        maximo = aux.groupby('FACULTAD')[escala].max()
+        aux_facultades = pd.merge(aux_facultades, maximo.rename(columna), how='left', on='FACULTAD')
+
+
+        i = i + 1
+
+    out_puntajes.reset_index(inplace=True)
+    out_puntajes = pd.merge(out_puntajes, aux_facultades, how='left', on='FACULTAD', left_index=True)
+    out_puntajes.set_index('CARRERA', inplace=True)
+
+    i = 0
+    while i < len(puntajes_de_escala) :
+        
+        escala = puntajes_de_escala[i]
+        nombre_escala = escala.replace('PUNTAJE_ESCALA_','')
+        aux = aux_data[aux_data[escala]!='']
+
+        columna = 'MEDIA_' + nombre_escala + '_USACH'
+        out_puntajes[columna] = aux[escala].mean()
+
+        columna = 'PUNTAJE_MINIMO_' + nombre_escala + '_USACH'
+        out_puntajes[columna] = aux[escala].min()
+
+        columna = 'PUNTAJE_MAXIMO_' + nombre_escala + '_USACH'
+        out_puntajes[columna] = aux[escala].max()
+        i = i + 1
     
     aux_data  = data.filter(columnas)
 
@@ -1190,10 +1318,7 @@ def procesar_socioeducativo_preguntas_21_67(data, resumen):
 
         out = pd.merge(out, aux, how='left', on='CARRERA')
         i = i + 1
-        # TERMINAR CON TODAS LAS COLUMNAS EN MAYÚSCULA
-        out.columns = _formatear_columnas(out.columns)
-        out = _formatear_data_set(out)
-
+        
     # NIVELES DE ESCALA FACULTAD
     i = 0
     aux_facultades = carreras_diagnostico
@@ -1251,7 +1376,7 @@ def procesar_socioeducativo_preguntas_21_67(data, resumen):
     #########################################################################
     
     out = pd.merge(out, out_puntajes, how='left', on='CARRERA')
-
+    
     # TERMINAR CON TODAS LAS COLUMNAS EN MAYÚSCULA
     out.columns = _formatear_columnas(out.columns)
     out = _formatear_data_set(out)
@@ -1260,10 +1385,13 @@ def procesar_socioeducativo_preguntas_21_67(data, resumen):
 
 
 def crear_resumen_socioeducativo(data,resumen):
-    data_frame_1 = procesar_socioeducativo_preguntas_1_20(data, resumen)
-    data_frame_2 = procesar_socioeducativo_preguntas_21_67(data, resumen)
-    out = pd.merge(data_frame_1, data_frame_2, how='left', on='CARRERA')
-    return out
+    #data_frame = procesar_socioeducativo_preguntas_1_20(data, resumen)
+    #data_frame.to_excel('resultados_socioeducativo-1.xlsx', sheet_name='RESULTADOS_SE', index=True)
+    data_frame = procesar_socioeducativo_preguntas_21_67(data,resumen)
+    data_frame.to_excel('resultados_socioeducativo-2.xlsx', sheet_name='RESULTADOS_SE', index=True)
+    #data_frame = procesar_socioeducativo_escalas_autorreporte(data, resumen)  
+    #data_frame.to_excel('resultados_socioeducativo-3.xlsx', sheet_name='RESULTADOS_SE', index=True)
+    return True
 
 def crear_resumen_matematica_a(data, resumen):
 
