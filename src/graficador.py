@@ -9,7 +9,7 @@ def _crear_carpeta_salida(directorio_salida, nombre_salida):
     return path
 
 def _capitalizar_lista(lista):
-    return list(map(lambda x:x.lower(), lista)) 
+    return list(map(lambda x:x.capitalize(), lista)) 
 
 ####################################################################################
 # 
@@ -57,8 +57,8 @@ def _crear_grafico_1_matematica_a(valores,carrera, ruta):
     nombre_salida = "grafico-1-" + carrera.strip().lower().replace(" ","-") 
     etiquetas = ["CARRERA", "FACULTAD", "USACH"]
     dimensiones = ["NÚMEROS", "ÁLGEBRA", "FUNCIONES", "GEOMETRÍA"]
-    #etiquetas = _capitalizar_lista(etiquetas)
-    #dimensiones = _capitalizar_lista(dimensiones)
+    etiquetas = _capitalizar_lista(etiquetas)
+    dimensiones = _capitalizar_lista(dimensiones)
     g = gr.crear_grafico_radar(valores, etiquetas, dimensiones, porcentaje=True)
     gr.agregar_leyenda(g)
     gr.agregar_titulo(g, "Comparación % de logro según ejes temáticos")
@@ -118,8 +118,8 @@ def _crear_grafico_2_matematica_a(valores, carrera, ruta):
     dimensiones = ["OBJETIVO 1", "OBJETIVO 2", "OBJETIVO 3",
                      "OBJETIVO 4", "OBJETIVO 5", "OBJETIVO 6", "OBJETIVO 7", 
                     "OBJETIVO 8", "OBJETIVO 9"]
-    #etiquetas = _capitalizar_lista(etiquetas)
-    #dimensiones = _capitalizar_lista(dimensiones)
+    etiquetas = _capitalizar_lista(etiquetas)
+    dimensiones = _capitalizar_lista(dimensiones)
     g = gr.crear_grafico_barras_verticales(valores, dimensiones, etiquetas, porcentaje=True)
     g.set_size_inches(30, 5)
     gr.agregar_leyenda(g)
@@ -183,8 +183,8 @@ def _crear_grafico_1_matematica_b(valores,carrera, ruta):
     etiquetas = ["CARRERA", "FACULTAD", "USACH"]
     dimensiones = ["RELACIONES Y PATRONES", "RAZONAMIENTO PROBABILÍSTICO Y ESTADÍSTICO", 
                     "RAZONAMIENTO NUMÉRICO", "RAZONAMIENTO GEOMÉTRICO"]
-    #etiquetas = _capitalizar_lista(etiquetas)
-    #dimensiones = _capitalizar_lista(dimensiones)
+    etiquetas = _capitalizar_lista(etiquetas)
+    dimensiones = _capitalizar_lista(dimensiones)
     g = gr.crear_grafico_radar(valores, etiquetas, dimensiones, porcentaje=True)
     gr.agregar_leyenda(g)
     gr.agregar_titulo(g, "Comparación % de logro según ejes temáticos")
@@ -231,8 +231,8 @@ def _crear_grafico_2_matematica_a(valores, carrera, ruta):
     etiquetas = ["CARRERA", "FACULTAD", "USACH"]
     dimensiones = ["OBJETIVO 1", "OBJETIVO 2", "OBJETIVO 3",
                      "OBJETIVO 4", "OBJETIVO 5"]
-    #etiquetas = _capitalizar_lista(etiquetas)
-    #dimensiones = _capitalizar_lista(dimensiones)
+    etiquetas = _capitalizar_lista(etiquetas)
+    dimensiones = _capitalizar_lista(dimensiones)
     g = gr.crear_grafico_barras_verticales(valores, dimensiones, etiquetas, porcentaje=True)
     g.set_size_inches(30, 5)
     gr.agregar_leyenda(g)
@@ -284,7 +284,7 @@ def _obtener_datos_grafico_1_pensamiento_cientifico(data,carrera):
         ]
     
     valores = [datos_carrera, datos_facultad, datos_usach]
-    
+    valores = [list(map(lambda x : x / 100, row)) for row in valores]
     return valores
 
 
@@ -295,8 +295,8 @@ def _crear_grafico_1_pensamiento_cientifico(valores,carrera, ruta):
     nombre_salida = "grafico-1-" + carrera.strip().lower().replace(" ","-") 
     etiquetas = ["CARRERA", "FACULTAD", "USACH"]
     dimensiones = ["CONCRETO", "TRANSICIONAL", "FORMAL"]
-    #etiquetas = _capitalizar_lista(etiquetas)
-    #dimensiones = _capitalizar_lista(dimensiones)
+    etiquetas = _capitalizar_lista(etiquetas)
+    dimensiones = _capitalizar_lista(dimensiones)
     g = gr.crear_grafico_radar(valores, etiquetas, dimensiones, porcentaje=True)
     gr.agregar_leyenda(g)
     gr.agregar_titulo(g, "Comparación % de logro según ejes temáticos")
@@ -344,8 +344,8 @@ def _crear_grafico_2_pensamiento_cientifico(valores, carrera, ruta):
     dimensiones = ["CONSERVACIÓN DE MAGNITUDES FÍSICAS", "PENSAMIENTO DE PROPORCIONALIDAD",
                      "IDENTIFICACIÓN Y CONTROL DE VARIABLES", "PENSAMIENTO PROBABILÍSTICO",
                      "PENSAMIENTO COMBINATORIO Y CORRELACIONAL"]
-    #etiquetas = _capitalizar_lista(etiquetas)
-    #dimensiones = _capitalizar_lista(dimensiones)
+    etiquetas = _capitalizar_lista(etiquetas)
+    dimensiones = _capitalizar_lista(dimensiones)
     g = gr.crear_grafico_barras_verticales(valores, dimensiones, etiquetas, porcentaje=True)
     g.set_size_inches(30, 5)
     gr.agregar_leyenda(g)
@@ -416,10 +416,128 @@ def _obtener_datos_grafico_1_escritura_academica(data, carrera):
     valores = [list(map(lambda x : x * 100, row)) for row in valores]
     return valores
 
-
-def _crear_grafico_1_escritura_academica(valores, carrera, ruta):
+def _crear_grafico_1_escritura_academica(valores,carrera, ruta):
+    
+    
     # Radar escala no porcentual
-    nombre_salida =  "grafico-1-" + carrera.strip().lower().replace(" ","-") 
+    nombre_salida = "grafico-1-" + carrera.strip().lower().replace(" ","-") 
+    etiquetas = ["CARRERA", "FACULTAD", "USACH"]
+    dimensiones = ["ESTRUCTURA", "COHERENCIA LOCAL",
+                     "ORTOGRAFÍA ACENTUAL Y LITERAL", "ORTOGRAFÍA PUNTUAL",
+                     "LÉXICO", "RECURSOS DE NIVEL GRAMATICAL", "ESTRUCTURA DE PÁRRAFOS",
+                     "TRANSFORMACIÓN DEL CONOCIMIENTO"]
+    etiquetas = _capitalizar_lista(etiquetas)
+    dimensiones = _capitalizar_lista(dimensiones)
+    g = gr.crear_grafico_radar(valores, etiquetas, dimensiones, porcentaje=True)
+    gr.agregar_leyenda(g)
+    gr.agregar_titulo(g, "Comparación % de logro según ejes temáticos")
+    gr.guardar_grafico(g, nombre_salida, ruta)
+    return True
+    
+
+def _crear_grafico_2_escritura_academica(valores, carrera, ruta):
+    # Radar escala no porcentual
+    nombre_salida =  "grafico-2-" + carrera.strip().lower().replace(" ","-") 
+    etiquetas = ["CARRERA", "FACULTAD", "USACH"]
+    dimensiones = ["ESTRUCTURA", "COHERENCIA LOCAL",
+                     "ORTOGRAFÍA ACENTUAL Y LITERAL", "ORTOGRAFÍA PUNTUAL",
+                     "LÉXICO", "RECURSOS DE NIVEL GRAMATICAL", "ESTRUCTURA DE PÁRRAFOS",
+                     "TRANSFORMACIÓN DEL CONOCIMIENTO"]
+    etiquetas = _capitalizar_lista(etiquetas)
+    dimensiones = _capitalizar_lista(dimensiones)
+    g = gr.crear_grafico_barras_verticales(valores, dimensiones, etiquetas, porcentaje=True)
+    g.set_size_inches(30, 5)
+    gr.agregar_leyenda(g)
+    gr.agregar_titulo(g, "Comparación % de logro Escritura Académica según objetivos")
+    gr.guardar_grafico(g, nombre_salida, ruta)
+    return True
+
+
+def _crear_graficos_escritura_academica(data, ruta):
+    lista_carreras = list(data.index.values)
+    for carrera in lista_carreras :
+        datos_graph1 = _obtener_datos_grafico_1_escritura_academica(data,carrera)
+        _crear_grafico_1_escritura_academica(datos_graph1, carrera, ruta)
+        _crear_grafico_2_escritura_academica(datos_graph1, carrera, ruta)
+        
+        
+    return True
+
+
+def ejecutar_proceso_graficos_escritura_academica(data, directorio_salida ):
+    path = _crear_carpeta_salida(directorio_salida, 'graficos-ea')
+    _crear_graficos_escritura_academica(data, path)
+    return True
+
+####################################################################################
+# 
+# GRAFICOS SOCIOEDUCATIVO
+#
+####################################################################################
+
+# El segundo gráfico que aparece es de barras agrupadas
+def _obtener_datos_grafico_1_socioeducativo(data, carrera):
+    # Función que obtiene la matriz de valores que el gráfico necesita
+    # y  que los multiplica por 100 para que representen porcentaje
+    # Obtengo los datos
+    datos_carrera = [
+            data.loc[carrera, "FEMENINO"],
+            data.loc[carrera, "MASCULINO"],
+            data.loc[carrera, "OTRO"]
+        ]
+    
+    # Multiplico x 100
+    valores = datos_carrera
+    valores = [x * 100 for x in valores]
+    return valores
+
+def _crear_grafico_1_socioeducativo(valores,carrera, ruta):
+    # Torta
+
+    nombre_salida = "grafico-1-" + carrera.strip().lower().replace(" ","-") 
+    etiquetas = ["FEMENINO", "MASCULINO", "OTRO"]
+    etiquetas = _capitalizar_lista(etiquetas)
+    #dimensiones = _capitalizar_lista(dimensiones)
+    g = gr.crear_grafico_torta(valores, etiquetas)
+    gr.agregar_leyenda(g)
+    gr.agregar_titulo(g, "Comparación según género")
+    gr.guardar_grafico(g, nombre_salida, ruta)         
+    return True
+
+def _obtener_datos_grafico_2_socioeducativo(data, carrera):
+    # Función que obtiene la matriz de valores que el gráfico necesita
+    # y  que los multiplica por 100 para que representen porcentaje
+    # Obtengo los datos
+    columnas = ['VIVIRA_CON_SUS_PADRES', 'VIVIRA_CON_PAREJA_O_AMIGOS', 
+                'VIVIRA_SIN_PERSONAS_CERCANAS', 'VIVIRA_CON_FAMILIARES', 
+                'VIVIRA_SOLO']
+    datos_carrera = []
+    for e in columnas : 
+        datos_carrera.append(data.loc[carrera, e])
+    
+    # Multiplico x 100
+    valores = datos_carrera
+    valores = [x * 100 for x in valores]
+    return valores
+
+def _crear_grafico_2_socioeducativo(valores,carrera, ruta):
+    # Torta
+
+    nombre_salida = "grafico-2-" + carrera.strip().lower().replace(" ","-") 
+    etiquetas = ["CON MI MADRE Y/O MI PADRE", "CON MI PAREJA O AMIGOS/AS", 
+                "CON OTRAS PERSONAS NO CERCANAS (POR EJ. PENSIÓN)",
+                "CON OTRO FAMILIAR CERCANO (POR EJ. ABUELOS/AS, HERMANOS/AS,TÍOS/AS)", "SOLO/A"]
+    etiquetas = _capitalizar_lista(etiquetas)
+    #dimensiones = _capitalizar_lista(dimensiones)
+    g = gr.crear_grafico_torta(valores, etiquetas)
+    gr.agregar_leyenda(g)
+    gr.agregar_titulo(g, "¿Con quién vivirás durante el año académico?")
+    gr.guardar_grafico(g, nombre_salida, ruta)         
+    return True
+'''
+def _crear_grafico_2_socioeducativo(valores, carrera, ruta):
+    # Radar escala no porcentual
+    nombre_salida =  "grafico-2-" + carrera.strip().lower().replace(" ","-") 
     etiquetas = ["CARRERA", "FACULTAD", "USACH"]
     dimensiones = ["ESTRUCTURA", "COHERENCIA LOCAL",
                      "ORTOGRAFÍA ACENTUAL Y LITERAL", "ORTOGRAFÍA PUNTUAL",
@@ -434,17 +552,21 @@ def _crear_grafico_1_escritura_academica(valores, carrera, ruta):
     gr.guardar_grafico(g, nombre_salida, ruta)
     return True
 
-
-def _crear_graficos_escritura_academica(data, ruta):
+'''
+def _crear_graficos_socioeducativo(data, ruta):
     lista_carreras = list(data.index.values)
     for carrera in lista_carreras :
-        datos_graph1 = _obtener_datos_grafico_1_escritura_academica(data,carrera)
-        _crear_grafico_1_escritura_academica(datos_graph1, carrera, ruta)
+        datos_graph1 = _obtener_datos_grafico_1_socioeducativo(data,carrera)
+        _crear_grafico_1_socioeducativo(datos_graph1, carrera, ruta)
+        datos_graph2 = _obtener_datos_grafico_2_socioeducativo(data,carrera)
+        _crear_grafico_2_socioeducativo(datos_graph2, carrera, ruta)
+        
         
     return True
 
 
-def ejecutar_proceso_graficos_escritura_academica(data, directorio_salida ):
-    path = _crear_carpeta_salida(directorio_salida, 'graficos-ea')
-    _crear_graficos_escritura_academica(data, path)
+def ejecutar_proceso_graficos_socioeducativo(data, directorio_salida ):
+    path = _crear_carpeta_salida(directorio_salida, 'graficos-se')
+    data.columns = [c.strip().upper().replace(' ', '_') for c in data.columns]
+    _crear_graficos_socioeducativo(data, path)
     return True

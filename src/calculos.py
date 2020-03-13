@@ -1385,13 +1385,15 @@ def procesar_socioeducativo_escalas_autorreporte(data, resumen):
 
 
 def crear_resumen_socioeducativo(data,resumen):
-    #data_frame = procesar_socioeducativo_preguntas_1_20(data, resumen)
-    #data_frame.to_excel('resultados_socioeducativo-1.xlsx', sheet_name='RESULTADOS_SE', index=True)
-    data_frame = procesar_socioeducativo_preguntas_21_67(data,resumen)
-    data_frame.to_excel('resultados_socioeducativo-2.xlsx', sheet_name='RESULTADOS_SE', index=True)
-    #data_frame = procesar_socioeducativo_escalas_autorreporte(data, resumen)  
-    #data_frame.to_excel('resultados_socioeducativo-3.xlsx', sheet_name='RESULTADOS_SE', index=True)
-    return True
+    data_frame1 = procesar_socioeducativo_preguntas_1_20(data, resumen)
+    
+    data_frame2 = procesar_socioeducativo_preguntas_21_67(data,resumen)
+    
+    data_frame3 = procesar_socioeducativo_escalas_autorreporte(data, resumen)  
+    data_frame1 = pd.merge(data_frame1, data_frame2, how='left', on='CARRERA')
+    data_frame1 = pd.merge(data_frame1, data_frame3, how='left', on='CARRERA')
+    data_frame1 = _formatear_data_set(data_frame1)
+    return data_frame1
 
 def crear_resumen_matematica_a(data, resumen):
 

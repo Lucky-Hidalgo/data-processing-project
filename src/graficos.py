@@ -147,7 +147,7 @@ def crear_grafico_torta(valores, etiquetas):
     plt.style.use(ESTILO)
     figura = plt.figure(figsize=TAMANO_IMAGEN)
     eje = figura.add_subplot(1, 1, 1)
-    eje.pie(valores, labels=etiquetas, shadow=True, colors=COLORES,
+    eje.pie(valores, labels=etiquetas, shadow=False, colors=COLORES,
             autopct='%1.1f%%')
     return figura
 
