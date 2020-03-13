@@ -3,8 +3,8 @@ import random
 import numpy as np
 
 
-NOMBRE_ARCHIVO_ENTRADA = 'salida-big-2.xlsx'
-NOMBRE_ARCHIVO_SALIDA = 'salida-big-2-output.xlsx'
+NOMBRE_ARCHIVO_ENTRADA = 'salida-big-1.xlsx'
+NOMBRE_ARCHIVO_SALIDA = 'salida-big-1-output.xlsx'
 
 columnas_socioeducativo = [
         "RESPONDIÓ CUESTIONARIO SOCIOEDUCATIVO",
@@ -384,7 +384,7 @@ def responderSocioeducativo(index):
     if random.random() < 0.09 :
         lista.append(random.choice(['Sí', 
                                 'No, pero pertenezco a un pueblo originario.',
-                                'No poseo certificado, ni pertenezco a un pueblo originario']))
+                                'No poseo certificado, ni pertenezco a un pueblo originario.']))
     else :
         lista.append('Sí')
     # Pregunta 7: 

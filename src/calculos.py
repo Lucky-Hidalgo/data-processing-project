@@ -5,12 +5,13 @@ import pandas as pd
 # si el porcentaje de respuesta es mayor al 5%
 TASA_DE_TOLERANCIA  = 0.05
 
-def _formatear_columnas(list):
+def _formatear_columnas(lista):
+    lista = [c.strip().lower() for c in lista]
     # Se cambia el fac por facultad
-    list = [c.replace('_fac','_facultad') for c in list]
+    lista = [c.replace('_fac','_facultad') for c in lista]
     # Se eliminan los espacios vacíos
-    list = [c.strip().upper().replace('_', ' ') for c in list]
-    return list
+    lista = [c.strip().upper().replace('_', ' ') for c in lista]
+    return lista
 
 def _formatear_data_set(data):
     data.fillna(0, inplace=True)
@@ -166,7 +167,7 @@ def crear_df_estadisticas_generales(data, resumen):
     return out
 
 
-def crear_resumen_socioeducativo(data, resumen):
+def procesar_socioeducativo_preguntas_1_20(data, resumen):
     # Los cálculos resumidos se hacen para todos, pero solo se agregan
     # a los que alcancen esta tasa mínima
     condicion = resumen['SI_SE'] > resumen['INSCRITOS'] * TASA_DE_TOLERANCIA
@@ -180,8 +181,12 @@ def crear_resumen_socioeducativo(data, resumen):
                                                         'NO_SE'])
 
     columnas = list(data.columns)
-    columnas =  ['CARRERA', 'FACULTAD'] + columnas[columnas.index('RESPONDIÓ_CUESTIONARIO_SOCIOEDUCATIVO'):columnas.index('RESPONDIÓ_MATEMÁTICA_"A"')]
+    columnas =  ['CARRERA', 'FACULTAD', 'VIA_DE_INGRESO', 'PROMEDIO_PSU', 'PUNTAJE_RANKING'] + columnas[columnas.index('RESPONDIÓ_CUESTIONARIO_SOCIOEDUCATIVO'):columnas.index('CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_20') + 1]
     aux_data  = data.filter(columnas)
+
+    ###########################################################################
+    # ASPECTOS SOCIODEMOGRÁFICOS
+    ###########################################################################
 
     # SEXO
     # CARRERA
@@ -204,8 +209,27 @@ def crear_resumen_socioeducativo(data, resumen):
     aux = aux.pivot(index='FACULTAD', 
                     columns='RESPUESTA', 
                     values='CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2')
+    aux = aux.rename(columns={'FEMENINO': 'FEMENINO_FAC', 'MASCULINO':'MASCULINO_FAC', 'OTRO': 'OTRO_FAC'})
     out.reset_index(inplace=True)
-    out = pd.merge(carreras_diagnostico, aux, how='left', on='FACULTAD', left_index=True)
+    
+    out = pd.merge(out, aux, how='left', on='FACULTAD', left_index=True)
+
+    out.set_index('CARRERA', inplace=True)
+
+    # USACH 
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2']!='']
+    aux_total = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2'].count()
+    
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2']=='FEMENINO']
+    out['FEMENINO_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2'].count() / aux_total
+
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2']!='']
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2']=='MASCULINO']
+    out['MASCULINO_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2'].count() / aux_total
+
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2']!='']
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2']=='OTRO']
+    out['OTRO_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_2'].count() / aux_total
 
     # EDAD 
     # CARRERA
@@ -218,6 +242,46 @@ def crear_resumen_socioeducativo(data, resumen):
     out.set_index('CARRERA', inplace=True)
     # USACH
     out['edad_usach'] = aux_data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_3'].mean()
+
+    # REGION DE ORIGEN
+    # CARRERA
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_5']!='']
+    aux = aux.groupby('CARRERA')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_5'].value_counts(normalize=True)
+    aux = pd.DataFrame(aux)
+    aux.index = aux.index.set_names(['CARRERA', 'RESPUESTA'])
+    aux.reset_index(inplace=True)
+    aux = aux.pivot(index='CARRERA', 
+                    columns='RESPUESTA', 
+                    values='CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_5')
+    aux = aux.rename(columns={'SÍ': 'VIVIA_EN_RM', 'NO': 'NO_VIVIA_EN_RM'})
+    out = pd.merge(out, aux, how='left', on='CARRERA')
+
+    # FACULTAD
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_5']!='']
+    aux = aux.groupby('FACULTAD')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_5'].value_counts(normalize=True)
+    aux = pd.DataFrame(aux)
+    aux.index = aux.index.set_names(['FACULTAD', 'RESPUESTA'])
+    aux.reset_index(inplace=True)
+    aux = aux.pivot(index='FACULTAD', 
+                    columns='RESPUESTA', 
+                    values='CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_5')
+    aux = aux.rename(columns={'SÍ': 'VIVIA_EN_RM_FAC', 'NO':'NO_VIVIA_EN_RN_FAC'})
+    out.reset_index(inplace=True)
+    
+    out = pd.merge(out, aux, how='left', on='FACULTAD', left_index=True)
+
+    out.set_index('CARRERA', inplace=True)
+
+    # USACH 
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_5']!='']
+    aux_total = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_5'].count()
+    
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_5']=='SÍ']
+    out['VIVIA_EN_RM_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_5'].count() / aux_total
+
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_5']!='']
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_5']=='NO']
+    out['NO_VIVIA_EN_RM_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_5'].count() / aux_total
 
     # NACIONALIDAD
     # Chileno (a)
@@ -258,9 +322,948 @@ def crear_resumen_socioeducativo(data, resumen):
     # USACH
     out['extranjero_usach'] = aux_data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_4'].count() / aux_total['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_4'].count()
 
+    # PERTENECE A PUEBLO ORIGINARIO
+    # CARRERA
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_6']!='']
+    aux = aux.groupby('CARRERA')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_6'].value_counts(normalize=True)
+    aux = pd.DataFrame(aux)
+    aux.index = aux.index.set_names(['CARRERA', 'RESPUESTA'])
+    aux.reset_index(inplace=True)
+    aux = aux.pivot(index='CARRERA', 
+                    columns='RESPUESTA', 
+                    values='CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_6')
+    aux = aux.rename(columns={'SÍ': 'SI_CERTIFICADO_CONADI', 
+                            'NO, PERO PERTENEZCO A UN PUEBLO ORIGINARIO.': 'NO_CERTIFICADO_CONADI',
+                            'NO POSEO CERTIFICADO, NI PERTENEZCO A UN PUEBLO ORIGINARIO.': 'NO_PUEBLO_ORIGINARIO'})
+    out = pd.merge(out, aux, how='left', on='CARRERA')
 
+    # FACULTAD
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_6']!='']
+    aux = aux.groupby('FACULTAD')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_6'].value_counts(normalize=True)
+    aux = pd.DataFrame(aux)
+    aux.index = aux.index.set_names(['FACULTAD', 'RESPUESTA'])
+    aux.reset_index(inplace=True)
+    aux = aux.pivot(index='FACULTAD', 
+                    columns='RESPUESTA', 
+                    values='CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_6')
+    aux = aux.rename(columns={'SÍ': 'SI_CERTIFICADO_CONADI_FAC', 
+                            'NO, PERO PERTENEZCO A UN PUEBLO ORIGINARIO.': 'NO_CERTIFICADO_CONADI_FAC',
+                            'NO POSEO CERTIFICADO, NI PERTENEZCO A UN PUEBLO ORIGINARIO.': 'NO_PUEBLO_ORIGINARIO_FAC'})
+    out.reset_index(inplace=True)
+    
+    out = pd.merge(out, aux, how='left', on='FACULTAD', left_index=True)
+
+    out.set_index('CARRERA', inplace=True)
+
+    # USACH 
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_6']!='']
+    aux_total = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_6'].count()
+    
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_5']=='SÍ']
+    out['SI_CERTIFICADO_CONADI_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_6'].count() / aux_total
+
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_6']!='']
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_6']=='NO, PERO PERTENEZCO A UN PUEBLO ORIGINARIO.']
+    out['NO_CERTIFICADO_CONADI_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_6'].count() / aux_total
+
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_6']!='']
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_6']=='NO POSEO CERTIFICADO, NI PERTENEZCO A UN PUEBLO ORIGINARIO.']
+    out['NO_PUEBLO_ORIGINARIO_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_6'].count() / aux_total
+
+    # REGISTRO DE DISCAPACIDAD
+    # CARRERA
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_7']!='']
+    aux = aux.groupby('CARRERA')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_7'].value_counts(normalize=True)
+    aux = pd.DataFrame(aux)
+    aux.index = aux.index.set_names(['CARRERA', 'RESPUESTA'])
+    aux.reset_index(inplace=True)
+    aux = aux.pivot(index='CARRERA', 
+                    columns='RESPUESTA', 
+                    values='CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_7')
+    aux = aux.rename(columns={'SÍ': 'TIENE_REGISTRO_DISCAPACIDAD', 'NO': 'NO_TIENE_REGISTRO_DISCAPACIDAD'})
+    out = pd.merge(out, aux, how='left', on='CARRERA')
+
+    # FACULTAD
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_7']!='']
+    aux = aux.groupby('FACULTAD')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_7'].value_counts(normalize=True)
+    aux = pd.DataFrame(aux)
+    aux.index = aux.index.set_names(['FACULTAD', 'RESPUESTA'])
+    aux.reset_index(inplace=True)
+    aux = aux.pivot(index='FACULTAD', 
+                    columns='RESPUESTA', 
+                    values='CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_7')
+    aux = aux.rename(columns={'SÍ': 'TIENE_REGISTRO_DISCAPACIDAD_FAC', 'NO': 'NO_TIENE_REGISTRO_DISCAPACIDAD_FAC'})
+    out.reset_index(inplace=True)
+    
+    out = pd.merge(out, aux, how='left', on='FACULTAD', left_index=True)
+
+    out.set_index('CARRERA', inplace=True)
+
+    # USACH 
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_7']!='']
+    aux_total = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_7'].count()
+    
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_7']=='SÍ']
+    out['TIENE_REGISTRO_DISCAPACIDAD_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_7'].count() / aux_total
+
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_7']!='']
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_7']=='NO']
+    out['NO_TIENE_REGISTRO_DISCAPACIDAD_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_7'].count() / aux_total
+
+    # DIFICULTADES DE AUTONOMÍA
+    # CARRERA
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_8']!='']
+    aux = aux.groupby('CARRERA')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_8'].value_counts(normalize=True)
+    aux = pd.DataFrame(aux)
+    aux.index = aux.index.set_names(['CARRERA', 'RESPUESTA'])
+    aux.reset_index(inplace=True)
+    aux = aux.pivot(index='CARRERA', 
+                    columns='RESPUESTA', 
+                    values='CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_8')
+    aux = aux.rename(columns={'SÍ': 'INFORMA_DIFICULTADES_DE_AUTONOMÍA', 'NO': 'NO_INFORMA_DIFICULTADES_DE_AUTONOMÍA'})
+    out = pd.merge(out, aux, how='left', on='CARRERA')
+
+    # FACULTAD
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_8']!='']
+    aux = aux.groupby('FACULTAD')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_8'].value_counts(normalize=True)
+    aux = pd.DataFrame(aux)
+    aux.index = aux.index.set_names(['FACULTAD', 'RESPUESTA'])
+    aux.reset_index(inplace=True)
+    aux = aux.pivot(index='FACULTAD', 
+                    columns='RESPUESTA', 
+                    values='CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_8')
+    aux = aux.rename(columns={'SÍ': 'INFORMA_DIFICULTADES_DE_AUTONOMÍA_FAC', 'NO': 'NO_INFORMA_DIFICULTADES_DE_AUTONOMÍA_FAC'})
+    out.reset_index(inplace=True)
+    
+    out = pd.merge(out, aux, how='left', on='FACULTAD', left_index=True)
+
+    out.set_index('CARRERA', inplace=True)
+
+    # USACH 
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_8']!='']
+    aux_total = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_8'].count()
+    
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_8']=='SÍ']
+    out['INFORMA_DIFICULTADES_DE_AUTONOMÍA_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_8'].count() / aux_total
+
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_8']!='']
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_8']=='NO']
+    out['NO_INFORMA_DIFICULTADES_DE_AUTONOMÍA_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_8'].count() / aux_total
+
+    #############################################################
+    #   SITUACIÓN FAMILIAR Y ECONÓMICA DEL ESTUDIANTE
+    #############################################################
+    # TIENE HIJOS
+    # CARRERA
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_9']!='']
+    aux = aux.groupby('CARRERA')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_9'].value_counts(normalize=True)
+    aux = pd.DataFrame(aux)
+    aux.index = aux.index.set_names(['CARRERA', 'RESPUESTA'])
+    aux.reset_index(inplace=True)
+    aux = aux.pivot(index='CARRERA', 
+                    columns='RESPUESTA', 
+                    values='CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_9')
+    aux = aux.rename(columns={'SÍ': 'TIENE_HIJOS', 'NO': 'NO_TIENE_HIJOS'})
+    out = pd.merge(out, aux, how='left', on='CARRERA')
+
+    # FACULTAD
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_9']!='']
+    aux = aux.groupby('FACULTAD')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_9'].value_counts(normalize=True)
+    aux = pd.DataFrame(aux)
+    aux.index = aux.index.set_names(['FACULTAD', 'RESPUESTA'])
+    aux.reset_index(inplace=True)
+    aux = aux.pivot(index='FACULTAD', 
+                    columns='RESPUESTA', 
+                    values='CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_9')
+    aux = aux.rename(columns={'SÍ': 'TIENE_HIJOS_FAC', 'NO':'NO_TIENE_HIJOS_FAC'})
+    out.reset_index(inplace=True)
+    
+    out = pd.merge(out, aux, how='left', on='FACULTAD', left_index=True)
+
+    out.set_index('CARRERA', inplace=True)
+
+    # USACH 
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_9']!='']
+    aux_total = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_9'].count()
+    
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_9']=='SÍ']
+    out['TIENE_HIJOS_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_9'].count() / aux_total
+
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_9']!='']
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_9']=='NO']
+    out['NO_TIENE_HIJOS_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_9'].count() / aux_total
+
+    # TIENE FAMILIARES QUE DEMANDEN ASISTENCIA
+    # CARRERA
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_10']!='']
+    aux = aux.groupby('CARRERA')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_10'].value_counts(normalize=True)
+    aux = pd.DataFrame(aux)
+    aux.index = aux.index.set_names(['CARRERA', 'RESPUESTA'])
+    aux.reset_index(inplace=True)
+    aux = aux.pivot(index='CARRERA', 
+                    columns='RESPUESTA', 
+                    values='CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_10')
+    aux = aux.rename(columns={'SÍ': 'TIENE_FAMILIARES_DEPENDIENTES', 
+                                'NO': 'NO_TIENE_FAMILIARES_DEPENDIENTES'})
+    out = pd.merge(out, aux, how='left', on='CARRERA')
+
+    # FACULTAD
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_10']!='']
+    aux = aux.groupby('FACULTAD')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_10'].value_counts(normalize=True)
+    aux = pd.DataFrame(aux)
+    aux.index = aux.index.set_names(['FACULTAD', 'RESPUESTA'])
+    aux.reset_index(inplace=True)
+    aux = aux.pivot(index='FACULTAD', 
+                    columns='RESPUESTA', 
+                    values='CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_10')
+    aux = aux.rename(columns={'SÍ': 'TIENE_FAMILIARES_DEPENDIENTES_FAC', 
+                                'NO':'NO_TIENE_FAMILIARES_DEPENDIENTES_FAC'})
+    out.reset_index(inplace=True)
+    
+    out = pd.merge(out, aux, how='left', on='FACULTAD', left_index=True)
+
+    out.set_index('CARRERA', inplace=True)
+
+    # USACH 
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_10']!='']
+    aux_total = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_10'].count()
+    
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_10']=='SÍ']
+    out['TIENE_FAMILIARES_DEPENDIENTES_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_10'].count() / aux_total
+
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_10']!='']
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_10']=='NO']
+    out['NO_TIENE_FAMILIARES_DEPENDIENTES_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_10'].count() / aux_total
+
+    # TIENE ESTUDIOS SUPERIORES
+    # CARRERA
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_11']!='']
+    aux = aux.groupby('CARRERA')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_11'].value_counts(normalize=True)
+    aux = pd.DataFrame(aux)
+    aux.index = aux.index.set_names(['CARRERA', 'RESPUESTA'])
+    aux.reset_index(inplace=True)
+    aux = aux.pivot(index='CARRERA', 
+                    columns='RESPUESTA', 
+                    values='CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_11')
+    aux = aux.rename(columns={'SÍ': 'TIENE_ESTUDIOS_SUPERIORES', 
+                                'NO': 'NO_TIENE_ESTUDIOS_SUPERIORES'})
+    out = pd.merge(out, aux, how='left', on='CARRERA')
+
+    # FACULTAD
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_11']!='']
+    aux = aux.groupby('FACULTAD')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_11'].value_counts(normalize=True)
+    aux = pd.DataFrame(aux)
+    aux.index = aux.index.set_names(['FACULTAD', 'RESPUESTA'])
+    aux.reset_index(inplace=True)
+    aux = aux.pivot(index='FACULTAD', 
+                    columns='RESPUESTA', 
+                    values='CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_11')
+    aux = aux.rename(columns={'SÍ': 'TIENE_ESTUDIOS_SUPERIORES_FAC', 
+                                'NO':'NO_TIENE_ESTUDIOS_SUPERIORES_FAC'})
+    out.reset_index(inplace=True)
+    
+    out = pd.merge(out, aux, how='left', on='FACULTAD', left_index=True)
+
+    out.set_index('CARRERA', inplace=True)
+
+    # USACH 
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_11']!='']
+    aux_total = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_11'].count()
+    
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_11']=='SÍ']
+    out['TIENE_ESTUDIOS_SUPERIORES_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_11'].count() / aux_total
+
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_11']!='']
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_11']=='NO']
+    out['NO_TIENE_ESTUDIOS_SUPERIORES_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_11'].count() / aux_total
+
+    # DONDE TIENE ESTUDIOS SUPERIORES
+    # CARRERA
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_11']=='SÍ']
+    aux = aux.groupby('CARRERA')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_12'].value_counts(normalize=True)
+    aux = pd.DataFrame(aux)
+    aux.index = aux.index.set_names(['CARRERA', 'RESPUESTA'])
+    aux.reset_index(inplace=True)
+    aux = aux.pivot(index='CARRERA', 
+                    columns='RESPUESTA', 
+                    values='CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_12')
+    aux = aux.rename(columns={'EN ESTA MISMA UNIVERSIDAD': 'ESTUDIO_EN_LA_USACH', 
+                                'EN OTRA UNIVERSIDAD': 'ESTUDIÓ_EN_OTRA_UNIVERSIDAD',
+                                'EN UN CENTRO DE FORMACIÓN TÉCNICA (CFT) O INSTITUTO PROFESIONAL (IP)': 'ESTUDIÓ_EN_IP_O_CFT',
+                                'EN OTRA INSTITUCIÓN DE EDUCACIÓN SUPERIOR': 'ESTUDIÓ_EN_OTRO'})
+    out = pd.merge(out, aux, how='left', on='CARRERA')
+
+    # FACULTAD
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_11']=='SÍ']
+    aux = aux.groupby('FACULTAD')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_12'].value_counts(normalize=True)
+    aux = pd.DataFrame(aux)
+    aux.index = aux.index.set_names(['FACULTAD', 'RESPUESTA'])
+    aux.reset_index(inplace=True)
+    aux = aux.pivot(index='FACULTAD', 
+                    columns='RESPUESTA', 
+                    values='CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_12')
+    aux = aux.rename(columns={'EN ESTA MISMA UNIVERSIDAD': 'ESTUDIO_EN_LA_USACH_FAC', 
+                                'EN OTRA UNIVERSIDAD': 'ESTUDIÓ_EN_OTRA_UNIVERSIDAD_FAC',
+                                'EN UN CENTRO DE FORMACIÓN TÉCNICA (CFT) O INSTITUTO PROFESIONAL (IP)': 'ESTUDIÓ_EN_IP_O_CFT_FAC',
+                                'EN OTRA INSTITUCIÓN DE EDUCACIÓN SUPERIOR': 'ESTUDIÓ_EN_OTRO_FAC'})
+    out.reset_index(inplace=True)
+    
+    out = pd.merge(out, aux, how='left', on='FACULTAD', left_index=True)
+
+    out.set_index('CARRERA', inplace=True)
+
+    # USACH 
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_11']=='SÍ']
+    aux_total = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_12'].count()
+    
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_12']=='EN ESTA MISMA UNIVERSIDAD']
+    out['ESTUDIO_EN_LA_USACH_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_12'].count() / aux_total
+
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_11']=='SÍ']
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_12']=='EN OTRA UNIVERSIDAD']
+    out['ESTUDIÓ_EN_OTRA_UNIVERSIDAD_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_12'].count() / aux_total
+
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_11']=='SÍ']
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_12']=='EN UN CENTRO DE FORMACIÓN TÉCNICA (CFT) O INSTITUTO PROFESIONAL (IP)']
+    out['ESTUDIÓ_EN_IP_O_CFT_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_12'].count() / aux_total
+
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_11']=='SÍ']
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_12']=='EN OTRA INSTITUCIÓN DE EDUCACIÓN SUPERIOR']
+    out['ESTUDIÓ_EN_OTRO_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_12'].count() / aux_total
+
+    # PADRES CON EDUCACIÓN SUPERIOR
+    # CARRERA
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_13']!='']
+    aux = aux.groupby('CARRERA')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_13'].value_counts(normalize=True)
+    aux = pd.DataFrame(aux)
+    aux.index = aux.index.set_names(['CARRERA', 'RESPUESTA'])
+    aux.reset_index(inplace=True)
+    aux = aux.pivot(index='CARRERA', 
+                    columns='RESPUESTA', 
+                    values='CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_13')
+    aux = aux.rename(columns={'SÍ': 'PADRES_TIENEN_ESTUDIOS_SUPERIORES', 
+                                'NO': 'PADRES_NO_TIENEN_ESTUDIOS_SUPERIORES'})
+    out = pd.merge(out, aux, how='left', on='CARRERA')
+
+    # FACULTAD
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_13']!='']
+    aux = aux.groupby('FACULTAD')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_13'].value_counts(normalize=True)
+    aux = pd.DataFrame(aux)
+    aux.index = aux.index.set_names(['FACULTAD', 'RESPUESTA'])
+    aux.reset_index(inplace=True)
+    aux = aux.pivot(index='FACULTAD', 
+                    columns='RESPUESTA', 
+                    values='CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_13')
+    aux = aux.rename(columns={'SÍ': 'PADRES_TIENEN_ESTUDIOS_SUPERIORES_FAC', 
+                                'NO':'PADRES_NO_TIENEN_ESTUDIOS_SUPERIORES_FAC'})
+    out.reset_index(inplace=True)
+    
+    out = pd.merge(out, aux, how='left', on='FACULTAD', left_index=True)
+
+    out.set_index('CARRERA', inplace=True)
+
+    # USACH 
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_13']!='']
+    aux_total = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_13'].count()
+    
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_13']=='SÍ']
+    out['PADRES_TIENEN_ESTUDIOS_SUPERIORES_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_13'].count() / aux_total
+
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_13']!='']
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_13']=='NO']
+    out['PADRES_NO_TIENEN_ESTUDIOS_SUPERIORES_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_13'].count() / aux_total
+
+    # CON QUIÉN VIVIRÁS DURANTE EL AÑO ACADÉMICO
+    # CARRERA
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_15']!='']
+    aux = aux.groupby('CARRERA')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_15'].value_counts(normalize=True)
+    aux = pd.DataFrame(aux)
+    aux.index = aux.index.set_names(['CARRERA', 'RESPUESTA'])
+    aux.reset_index(inplace=True)
+    aux = aux.pivot(index='CARRERA', 
+                    columns='RESPUESTA', 
+                    values='CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_15')
+    aux = aux.rename(columns={'CON MI MADRE Y - O MI PADRE': 'VIVIRA_CON_SUS_PADRES', 
+                               'CON OTRO FAMILIAR CERCANO (POR EJ. ABUELOS - AS, HERMANOS - AS, TÍOS - AS)' : 'VIVIRA_CON_FAMILIARES',
+                               'CON MI PAREJA O AMIGOS - AS' : 'VIVIRA_CON_PAREJA_O_AMIGOS',
+                               'SOLO - A' : 'VIVIRA_SOLO',
+                               'CON OTRAS PERSONAS NO CERCANAS (POR EJ. PENSIÓN)': 'VIVIRA_SIN_PERSONAS_CERCANAS'})
+
+    out = pd.merge(out, aux, how='left', on='CARRERA')
+
+    # FACULTAD
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_15']!='']
+    aux = aux.groupby('FACULTAD')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_15'].value_counts(normalize=True)
+    aux = pd.DataFrame(aux)
+    aux.index = aux.index.set_names(['FACULTAD', 'RESPUESTA'])
+    aux.reset_index(inplace=True)
+    aux = aux.pivot(index='FACULTAD', 
+                    columns='RESPUESTA', 
+                    values='CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_15')
+    aux = aux.rename(columns={'CON MI MADRE Y - O MI PADRE': 'VIVIRA_CON_SUS_PADRES_FAC', 
+                               'CON OTRO FAMILIAR CERCANO (POR EJ. ABUELOS - AS, HERMANOS - AS, TÍOS - AS)' : 'VIVIRA_CON_FAMILIARES_FAC',
+                               'CON MI PAREJA O AMIGOS - AS' : 'VIVIRA_CON_PAREJA_O_AMIGOS_FAC',
+                               'SOLO - A' : 'VIVIRA_SOLO_FAC',
+                               'CON OTRAS PERSONAS NO CERCANAS (POR EJ. PENSIÓN)': 'VIVIRA_SIN_PERSONAS_CERCANAS_FAC'})
+
+    out.reset_index(inplace=True)
+    
+    out = pd.merge(out, aux, how='left', on='FACULTAD', left_index=True)
+
+    out.set_index('CARRERA', inplace=True)
+
+    # USACH 
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_15']!='']
+    aux_total = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_15'].count()
+    
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_15']=='CON MI MADRE Y - O MI PADRE']
+    out['VIVIRA_CON_SUS_PADRES_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_15'].count() / aux_total
+
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_15']!='']
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_15']=='CON OTRO FAMILIAR CERCANO (POR EJ. ABUELOS - AS, HERMANOS - AS, TÍOS - AS)']
+    out['VIVIRA_CON_FAMILIARES_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_15'].count() / aux_total
+
+
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_15']!='']
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_15']=='CON MI PAREJA O AMIGOS - AS']
+    out['VIVIRA_CON_PAREJA_O_AMIGOS_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_15'].count() / aux_total
+
+
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_15']!='']
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_15']=='SOLO - A']
+    out['VIVIRA_SOLO_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_15'].count() / aux_total
+
+
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_15']!='']
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_15']=='CON OTRAS PERSONAS NO CERCANAS (POR EJ. PENSIÓN)']
+    out['VIVIRA_SIN_PERSONAS_CERCANAS_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_15'].count() / aux_total
+
+
+    # SOSTÉN ECONÓMICO DEL HOGAR
+    # CARRERA
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_14']!='']
+    aux = aux.groupby('CARRERA')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_14'].value_counts(normalize=True)
+    aux = pd.DataFrame(aux)
+    aux.index = aux.index.set_names(['CARRERA', 'RESPUESTA'])
+    aux.reset_index(inplace=True)
+    aux = aux.pivot(index='CARRERA', 
+                    columns='RESPUESTA', 
+                    values='CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_14')
+    aux = aux.rename(columns={'MI MADRE Y - O MI PADRE': 'SUS_PADRES_SOSTIENEN_EL_HOGAR', 
+                               'UN FAMILIAR CERCANO (POR EJ. ABUELOS - AS, HERMANOS - AS, TÍOS - AS)' : 'FAMILIARES_SOSTIENEN_EL_HOGAR',
+                               'YO' : 'EL_SOSTIENE_EL_HOGAR',
+                               'OTRO' : 'OTRO_SOSTIENE_EL_HOGAR'})
+
+    out = pd.merge(out, aux, how='left', on='CARRERA')
+
+    # FACULTAD
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_14']!='']
+    aux = aux.groupby('FACULTAD')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_14'].value_counts(normalize=True)
+    aux = pd.DataFrame(aux)
+    aux.index = aux.index.set_names(['FACULTAD', 'RESPUESTA'])
+    aux.reset_index(inplace=True)
+    aux = aux.pivot(index='FACULTAD', 
+                    columns='RESPUESTA', 
+                    values='CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_14')
+    aux = aux.rename(columns={'MI MADRE Y - O MI PADRE': 'SUS_PADRES_SOSTIENEN_EL_HOGAR_FAC', 
+                               'UN FAMILIAR CERCANO (POR EJ. ABUELOS - AS, HERMANOS - AS, TÍOS - AS)' : 'FAMILIARES_SOSTIENEN_EL_HOGAR_FAC',
+                               'YO' : 'EL_SOSTIENE_EL_HOGAR_FAC',
+                               'OTRO' : 'OTRO_SOSTIENE_EL_HOGAR_FAC'})
+
+    out.reset_index(inplace=True)
+    
+    out = pd.merge(out, aux, how='left', on='FACULTAD', left_index=True)
+
+    out.set_index('CARRERA', inplace=True)
+
+    # USACH 
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_14']!='']
+    aux_total = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_14'].count()
+    
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_14']=='MI MADRE Y - O MI PADRE']
+    out['SUS_PADRES_SOSTIENEN_EL_HOGAR_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_14'].count() / aux_total
+
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_14']!='']
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_14']=='UN FAMILIAR CERCANO (POR EJ. ABUELOS - AS, HERMANOS - AS, TÍOS - AS)']
+    out['FAMILIARES_SOSTIENEN_EL_HOGAR_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_14'].count() / aux_total
+
+
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_14']!='']
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_14']=='YO']
+    out['EL_SOSTIENE_EL_HOGAR_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_14'].count() / aux_total
+
+
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_14']!='']
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_14']=='OTRO']
+    out['OTRO_SOSTIENE_EL_HOGAR_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_15'].count() / aux_total
+
+    # TIENES PENSADO TRABAJAR
+    # CARRERA
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_18']!='']
+    aux = aux.groupby('CARRERA')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_18'].value_counts(normalize=True)
+    aux = pd.DataFrame(aux)
+    aux.index = aux.index.set_names(['CARRERA', 'RESPUESTA'])
+    aux.reset_index(inplace=True)
+    aux = aux.pivot(index='CARRERA', 
+                    columns='RESPUESTA', 
+                    values='CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_18')
+    aux = aux.rename(columns={'SÍ': 'TIENE_PENSADO_TRABAJAR', 
+                                'NO': 'NO_TIENE_PENSADO_TRABAJAR'})
+    out = pd.merge(out, aux, how='left', on='CARRERA')
+
+    # FACULTAD
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_18']!='']
+    aux = aux.groupby('FACULTAD')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_18'].value_counts(normalize=True)
+    aux = pd.DataFrame(aux)
+    aux.index = aux.index.set_names(['FACULTAD', 'RESPUESTA'])
+    aux.reset_index(inplace=True)
+    aux = aux.pivot(index='FACULTAD', 
+                    columns='RESPUESTA', 
+                    values='CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_18')
+    aux = aux.rename(columns={'SÍ': 'TIENE_PENSADO_TRABAJAR_FAC', 
+                                'NO': 'NO_TIENE_PENSADO_TRABAJAR_FAC'})
+    out.reset_index(inplace=True)
+    
+    out = pd.merge(out, aux, how='left', on='FACULTAD', left_index=True)
+
+    out.set_index('CARRERA', inplace=True)
+
+    # USACH 
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_18']!='']
+    aux_total = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_18'].count()
+    
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_18']=='SÍ']
+    out['TIENE_PENSADO_TRABAJAR_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_18'].count() / aux_total
+
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_18']!='']
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_18']=='NO']
+    out['NO_TIENE_PENSADO_TRABAJAR_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_18'].count() / aux_total
+
+
+    # MOTIVOS PARA TRABAJAR
+    # CARRERA
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_18']=='SÍ']
+    aux = aux.groupby('CARRERA')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_19'].value_counts(normalize=True)
+    aux = pd.DataFrame(aux)
+    aux.index = aux.index.set_names(['CARRERA', 'RESPUESTA'])
+    aux.reset_index(inplace=True)
+    aux = aux.pivot(index='CARRERA', 
+                    columns='RESPUESTA', 
+                    values='CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_19')
+    aux = aux.rename(columns={'NECESITO SOSTENER ECONÓMICAMENTE A MI FAMILIA O HIJO(A)': 'SOSTENER_ECONOMICAMENTE_FAMILIA', 
+                                'NECESITO FINANCIAR MIS ESTUDIOS': 'FINANCIAR_MIS_ESTUDIOS',
+                                'NECESITO APORTAR ECONÓMICAMENTE A MI HOGAR' : 'APORTAR_AL_HOGAR',
+                                'NECESITO COSTEAR GASTOS PERSONALES (TRANSPORTE, VESTIMENTA, ALIMENTACIÓN, ESPARCIMIENTO)': 'COSTEAR_GASTOS_PERSONALES',
+                                'OTRO MOTIVO' : 'OTRO_MOTIVO'})
+    out = pd.merge(out, aux, how='left', on='CARRERA')
+
+
+
+
+    # FACULTAD
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_18']=='SÍ']
+    aux = aux.groupby('FACULTAD')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_19'].value_counts(normalize=True)
+    aux = pd.DataFrame(aux)
+    aux.index = aux.index.set_names(['FACULTAD', 'RESPUESTA'])
+    aux.reset_index(inplace=True)
+    aux = aux.pivot(index='FACULTAD', 
+                    columns='RESPUESTA', 
+                    values='CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_19')
+    aux = aux.rename(columns={'NECESITO SOSTENER ECONÓMICAMENTE A MI FAMILIA O HIJO(A)': 'SOSTENER_ECONOMICAMENTE_FAMILIA_FAC', 
+                                'NECESITO FINANCIAR MIS ESTUDIOS': 'FINANCIAR_MIS_ESTUDIOS_FAC',
+                                'NECESITO APORTAR ECONÓMICAMENTE A MI HOGAR' : 'APORTAR_AL_HOGAR_FAC',
+                                'NECESITO COSTEAR GASTOS PERSONALES (TRANSPORTE, VESTIMENTA, ALIMENTACIÓN, ESPARCIMIENTO)': 'COSTEAR_GASTOS_PERSONALES_FAC',
+                                'OTRO MOTIVO' : 'OTRO_MOTIVO_FAC'})
+    out.reset_index(inplace=True)
+    
+    out = pd.merge(out, aux, how='left', on='FACULTAD', left_index=True)
+
+    out.set_index('CARRERA', inplace=True)
+
+    # USACH 
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_18']=='SÍ']
+    aux_total = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_18'].count()
+    
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_19']=='NECESITO SOSTENER ECONÓMICAMENTE A MI FAMILIA O HIJO(A)']
+    out['SOSTENER_ECONOMICAMENTE_FAMILIA_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_19'].count() / aux_total
+
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_18']=='SÍ']
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_19']=='NECESITO FINANCIAR MIS ESTUDIOS']
+    out['FINANCIAR_MIS_ESTUDIOS_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_19'].count() / aux_total
+
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_18']=='SÍ']
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_19']=='NECESITO APORTAR ECONÓMICAMENTE A MI HOGAR']
+    out['APORTAR_AL_HOGAR_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_19'].count() / aux_total
+
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_18']=='SÍ']
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_19']=='NECESITO COSTEAR GASTOS PERSONALES (TRANSPORTE, VESTIMENTA, ALIMENTACIÓN, ESPARCIMIENTO)']
+    out['COSTEAR_GASTOS_PERSONALES_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_19'].count() / aux_total
+
+
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_18']=='SÍ']
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_19']=='OTRO MOTIVO']
+    out['OTRO_MOTIVO_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_19'].count() / aux_total
+
+    # MOTIVO MÁS COMÚN
+    # CARRERA
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_19']!='']
+    aux = aux.groupby('CARRERA')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_19'].agg(lambda x:x.value_counts().index[0])
+    aux = pd.DataFrame(aux)
+    
+    aux = aux.rename(columns={'CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_19': 'MOTIVO_MAS_COMUN'})
+
+    out = pd.merge(out, aux, how='left', on='CARRERA')
+
+    # FACULTAD
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_19']!='']
+    aux = aux.groupby('FACULTAD')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_19'].agg(lambda x:x.value_counts().index[0])
+    aux = pd.DataFrame(aux)
+    
+    aux = aux.rename(columns={'CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_19': 'MOTIVO_MAS_COMUN_FAC'})
+    out.reset_index(inplace=True)
+    out = pd.merge(out, aux, how='left', on='FACULTAD', left_index=True)
+    out.set_index('CARRERA', inplace=True)
+    # CARRERA
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_19']!='']
+    out['MOTIVO_MAS_COMUN_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_19'].value_counts().idxmax()
+    
+
+    ######################################################################################
+    # RENDIMIENTO ACADÉMICO PREVIO, CONDICIONES PARA EL ESTUDIO Y VINCULACIÓN SOCIAL
+    ######################################################################################
+    # VIA DE INGRESO 
+    
+
+    # PUNTAJE_PSU Y RANKING
+    # CARRERA
+    aux_data = data.filter(columnas)
+    aux_data = aux_data.groupby('CARRERA').agg(
+        # Puntaje promedio de la carrera
+        puntaje_promedio_psu = ('PROMEDIO_PSU', 'mean'),
+        puntaje_promedio_ranking = ('PUNTAJE_RANKING', 'mean')
+        )
+    out = pd.merge(out, aux_data, how='left', on='CARRERA')
+    
+    
+    # FACULTAD
+    aux_data = data.filter(columnas)
+    aux_data = aux_data.groupby('FACULTAD').agg(
+        # Puntaje promedio de la carrera
+        puntaje_promedio_psu_fac = ('PROMEDIO_PSU', 'mean'),
+        puntaje_promedio_ranking_fac = ('PUNTAJE_RANKING', 'mean')
+        )
+    out.reset_index(inplace=True)
+    
+    out = pd.merge(out, aux_data, how='left', on='FACULTAD', left_index=True)
+    out.set_index('CARRERA', inplace=True)
+
+    # USACH
+    out['PROMEDIO_PSU_USACH'] = data['PROMEDIO_PSU'].mean()
+    out['PUNTAJE_RANKING_USACH'] = data['PUNTAJE_RANKING'].mean()
+
+    # ESPACIO DE ESTUDIO
+    # CARRERA
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_16']!='']
+    aux = aux.groupby('CARRERA')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_16'].value_counts(normalize=True)
+    aux = pd.DataFrame(aux)
+    aux.index = aux.index.set_names(['CARRERA', 'RESPUESTA'])
+    aux.reset_index(inplace=True)
+    aux = aux.pivot(index='CARRERA', 
+                    columns='RESPUESTA', 
+                    values='CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_16')
+    aux = aux.rename(columns={'SÍ': 'TIENE_ESPACIO_PARA_ESTUDIAR', 
+                                'NO': 'NO_TIENE_ESPACIO_PARA_ESTUDIAR'})
+    out = pd.merge(out, aux, how='left', on='CARRERA')
+
+    # FACULTAD
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_16']!='']
+    aux = aux.groupby('FACULTAD')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_16'].value_counts(normalize=True)
+    aux = pd.DataFrame(aux)
+    aux.index = aux.index.set_names(['FACULTAD', 'RESPUESTA'])
+    aux.reset_index(inplace=True)
+    aux = aux.pivot(index='FACULTAD', 
+                    columns='RESPUESTA', 
+                    values='CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_16')
+    aux = aux.rename(columns={'SÍ': 'TIENE_ESPACIO_PARA_ESTUDIAR_FAC', 
+                                'NO': 'NO_TIENE_ESPACIO_PARA_ESTUDIAR_FAC'})
+    out.reset_index(inplace=True)
+    
+    out = pd.merge(out, aux, how='left', on='FACULTAD', left_index=True)
+
+    out.set_index('CARRERA', inplace=True)
+
+    # USACH 
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_16']!='']
+    aux_total = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_16'].count()
+    
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_16']=='SÍ']
+    out['TIENE_ESPACIO_PARA_ESTUDIAR_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_16'].count() / aux_total
+
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_16']!='']
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_16']=='NO']
+    out['NO_TIENE_ESPACIO_PARA_ESTUDIAR_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_16'].count() / aux_total
+
+    # ACCESO A INTERNET
+    # CARRERA
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_17']!='']
+    aux = aux.groupby('CARRERA')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_17'].value_counts(normalize=True)
+    aux = pd.DataFrame(aux)
+    aux.index = aux.index.set_names(['CARRERA', 'RESPUESTA'])
+    aux.reset_index(inplace=True)
+    aux = aux.pivot(index='CARRERA', 
+                    columns='RESPUESTA', 
+                    values='CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_17')
+    aux = aux.rename(columns={'SÍ': 'TIENE_ACCESO_A_INTERNET', 
+                                'NO': 'NO_TIENE_ACCESO_A_INTERNET'})
+    out = pd.merge(out, aux, how='left', on='CARRERA')
+
+    # FACULTAD
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_17']!='']
+    aux = aux.groupby('FACULTAD')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_17'].value_counts(normalize=True)
+    aux = pd.DataFrame(aux)
+    aux.index = aux.index.set_names(['FACULTAD', 'RESPUESTA'])
+    aux.reset_index(inplace=True)
+    aux = aux.pivot(index='FACULTAD', 
+                    columns='RESPUESTA', 
+                    values='CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_17')
+    aux = aux.rename(columns={'SÍ': 'TIENE_ACCESO_A_INTERNET_FAC', 
+                                'NO': 'NO_TIENE_ACCESO_A_INTERNET_FAC'})
+    out.reset_index(inplace=True)
+    
+    out = pd.merge(out, aux, how='left', on='FACULTAD', left_index=True)
+
+    out.set_index('CARRERA', inplace=True)
+
+    # USACH 
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_17']!='']
+    aux_total = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_17'].count()
+    
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_17']=='SÍ']
+    out['TIENE_ACCESO_A_INTERNET_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_17'].count() / aux_total
+
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_17']!='']
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_17']=='NO']
+    out['NO_TIENE_ACCESO_A_INTERNET_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_17'].count() / aux_total
+
+    
+    # PARTICIPA EN ORGANIZACIONES
+    # CARRERA
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_20']!='']
+    aux = aux.groupby('CARRERA')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_20'].value_counts(normalize=True)
+    aux = pd.DataFrame(aux)
+    aux.index = aux.index.set_names(['CARRERA', 'RESPUESTA'])
+    aux.reset_index(inplace=True)
+    aux = aux.pivot(index='CARRERA', 
+                    columns='RESPUESTA', 
+                    values='CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_20')
+    aux = aux.rename(columns={'SÍ': 'PARTICIPA_EN_ORGANIZACIONES', 
+                                'NO': 'NO_PARTICIPA_EN_ORGANIZACIONES'})
+    out = pd.merge(out, aux, how='left', on='CARRERA')
+
+    # FACULTAD
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_20']!='']
+    aux = aux.groupby('FACULTAD')['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_20'].value_counts(normalize=True)
+    aux = pd.DataFrame(aux)
+    aux.index = aux.index.set_names(['FACULTAD', 'RESPUESTA'])
+    aux.reset_index(inplace=True)
+    aux = aux.pivot(index='FACULTAD', 
+                    columns='RESPUESTA', 
+                    values='CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_20')
+    aux = aux.rename(columns={'SÍ': 'PARTICIPA_EN_ORGANIZACIONES_FAC', 
+                                'NO': 'NO_PARTICIPA_EN_ORGANIZACIONES_FAC'})
+    out.reset_index(inplace=True)
+    
+    out = pd.merge(out, aux, how='left', on='FACULTAD', left_index=True)
+
+    out.set_index('CARRERA', inplace=True)
+
+    # USACH 
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_20']!='']
+    aux_total = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_20'].count()
+    
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_20']=='SÍ']
+    out['PARTICIPA_EN_ORGANIZACIONES_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_20'].count() / aux_total
+
+    aux = data[data['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_20']!='']
+    aux = aux[aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_20']=='NO']
+    out['NO_PARTICIPA_EN_ORGANIZACIONES_USACH'] = aux['CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_20'].count() / aux_total
+
+
+    # TERMINAR CON TODAS LAS COLUMNAS EN MAYÚSCULA
+    out.columns = _formatear_columnas(out.columns)
+    out = _formatear_data_set(out)
     return out
 
+
+def procesar_socioeducativo_preguntas_21_67(data, resumen):
+    # Los cálculos resumidos se hacen para todos, pero solo se agregan
+    # a los que alcancen esta tasa mínima
+    condicion = resumen['SI_SE'] > resumen['INSCRITOS'] * TASA_DE_TOLERANCIA
+    
+    carreras_diagnostico = resumen[condicion]
+
+    carreras_diagnostico = carreras_diagnostico.filter(['CARRERA',
+                                                        'FACULTAD'])
+
+    columnas = list(data.columns)
+    columnas =  ['CARRERA', 'FACULTAD', 'VIA_DE_INGRESO', 'PROMEDIO_PSU', 'PUNTAJE_RANKING'] + columnas[columnas.index('CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_20'):columnas.index('NIVEL_ESCALA_USO_ACADÉMICO_DE_TECNOLOGÍA') + 1]
+    
+    
+    aux_data  = data.filter(columnas)
+
+    puntajes_de_escala = ['PUNTAJE_ESCALA_CONFLICTOS_TRANSICIÓN',
+                'PUNTAJE_ESCALA_MOTIVACIONES_ACADÉMICAS',
+                'PUNTAJE_ESCALA_EXPECTATIVAS_ACADÉMICAS',
+                'PUNTAJE_ESCALA_DESIGUALDAD_PERCIBIDA',
+                'PUNTAJE_ESCALA_PERCEPCIÓN_DE_LA_DOCENCIA',
+                'PUNTAJE_ESCALA_DISTRACCIÓN_Y_PROCASTINACIÓN',
+                'PUNTAJE_ESCALA_ANSIEDAD_ACADÉMICA',
+                'PUNTAJE_ESCALA_SELECCIÓN_DE_IDEAS_PRINCIPALES',
+                'PUNTAJE_ESCALA_USO_ACADÉMICO_DE_TECNOLOGÍA']
+    i = 0
+    out_puntajes = carreras_diagnostico 
+    while i < len(puntajes_de_escala) :
+        
+        escala = puntajes_de_escala[i]
+        nombre_escala = escala.replace('PUNTAJE_ESCALA_','')
+        aux = aux_data[aux_data[escala]!='']
+
+        columna = 'MEDIA_' + nombre_escala
+        promedio = aux.groupby('CARRERA')[escala].mean()
+        #promedio = promedio.rename(columns={escala: columna})
+        out_puntajes = pd.merge(out_puntajes, promedio.rename(columna), how='left', on='CARRERA')
+
+        columna = 'PUNTAJE_MINIMO_' + nombre_escala
+        minimo = aux.groupby('CARRERA')[escala].min()
+        #minimo = minimo.rename(columns={escala: columna})
+        out_puntajes = pd.merge(out_puntajes, minimo.rename(columna), how='left', on='CARRERA')
+
+        columna = 'PUNTAJE_MAXIMO_' + nombre_escala
+        maximo = aux.groupby('CARRERA')[escala].max()
+        #maximo = maximo.rename(columns={escala: columna})
+        out_puntajes = pd.merge(out_puntajes, maximo.rename(columna), how='left', on='CARRERA')
+
+
+        i = i + 1
+  
+    
+    aux_data  = data.filter(columnas)
+
+    niveles_de_escala = ['NIVEL_ESCALA_CONFLICTO_TRANSICIÓN',
+                         'NIVEL_ESCALA_MOTIVACIONES_ACADÉMICAS',
+                         'NIVEL_ESCALA_EXPECTATIVAS_ACADÉMICAS',
+                         'NIVEL_ESCALA_DESIGUALDAD_PERCIBIDA',
+                         'NIVEL_ESCALA_PERCEPCIÓN_DE_LA_DOCENCIA',
+                         'NIVEL_ESCALA_DISTRACCIÓN_Y_PROCASTINACIÓN',
+                         'NIVEL_ESCALA_ANSIEDAD_ACADÉMICA',
+                         'NIVEL_ESCALA_SELECCIÓN_DE_IDEAS_PRINCIPALES',
+                         'NIVEL_ESCALA_USO_ACADÉMICO_DE_TECNOLOGÍA'
+                        ]
+    out = carreras_diagnostico
+    ###################################################
+    # ESCALAS DE AUTOREPORTE ACADÉMICO							
+    ###################################################
+    # NIVELES DE ESCALA
+    i = 0
+    while i < len(niveles_de_escala):
+        escala_actual = niveles_de_escala[i]
+        nombre_escala = escala_actual.replace('NIVEL_ESCALA_','')
+        columnas = { 'ALTO' : nombre_escala + '_ALTO',
+                     'MEDIO': nombre_escala + '_MEDIO',
+                     'BAJO': nombre_escala + '_BAJO',
+
+            }
+        aux = aux_data[aux_data[escala_actual]!='']
+        aux = aux.groupby('CARRERA')[escala_actual].value_counts(normalize=True)
+        aux = pd.DataFrame(aux)
+        aux.index = aux.index.set_names(['CARRERA', 'RESPUESTA'])
+        aux.reset_index(inplace=True)
+        aux = aux.pivot(index='CARRERA', 
+                        columns='RESPUESTA', 
+                        values=escala_actual)
+        aux = aux.rename(columns=columnas)
+        for e in columnas.values():
+            if e in aux.columns :
+                aux[e] = aux[e].fillna(0)
+            else :
+                aux[e] = 0
+
+        out = pd.merge(out, aux, how='left', on='CARRERA')
+        i = i + 1
+        # TERMINAR CON TODAS LAS COLUMNAS EN MAYÚSCULA
+        out.columns = _formatear_columnas(out.columns)
+        out = _formatear_data_set(out)
+
+    # NIVELES DE ESCALA FACULTAD
+    i = 0
+    aux_facultades = carreras_diagnostico
+    while i < len(niveles_de_escala):
+        escala_actual = niveles_de_escala[i]
+        nombre_escala = escala_actual.replace('NIVEL_ESCALA_','')
+        columnas = { 'ALTO' : nombre_escala + '_ALTO_FAC',
+                     'MEDIO': nombre_escala + '_MEDIO_FAC',
+                     'BAJO': nombre_escala + '_BAJO_FAC'
+                    }
+        aux = aux_data[aux_data[escala_actual]!='']
+        aux = aux.groupby('FACULTAD')[escala_actual].value_counts(normalize=True)
+        aux = pd.DataFrame(aux)
+        aux.index = aux.index.set_names(['FACULTAD', 'RESPUESTA'])
+        aux.reset_index(inplace=True)
+        aux = aux.pivot(index='FACULTAD', 
+                        columns='RESPUESTA', 
+                        values=escala_actual)
+
+        aux = aux.rename(columns=columnas)
+        for e in columnas.values():
+            if e in aux :
+                aux[e] = aux[e].fillna(0)
+            else :
+                aux[e] = 0
+
+        aux_facultades = pd.merge(aux_facultades, aux, how='left', on='FACULTAD')
+        i = i + 1
+
+
+    out.reset_index(inplace=True)  
+    out = pd.merge(out, aux_facultades, how='left', on='FACULTAD', left_index=True)
+    out.set_index('CARRERA', inplace=True)
+
+    i = 0
+    while i < len(niveles_de_escala):
+        escala_actual = niveles_de_escala[i]
+        nombre_escala = escala_actual.replace('NIVEL_ESCALA_','')
+        columnas = { 'ALTO' : nombre_escala + '_ALTO_USACH',
+                     'MEDIO': nombre_escala + '_MEDIO_USACH',
+                     'BAJO': nombre_escala + '_BAJO_USACH'}
+        
+        aux = aux_data[aux_data[escala_actual]!='']
+        aux_total = aux[escala_actual].count()
+        
+        for key in columnas :
+            aux = aux[aux[escala_actual]==key]
+            total = aux[escala_actual].count()
+            out[columnas[key]] = total / aux_total
+            aux = aux_data[aux_data[escala_actual]!='']
+        
+        i = i + 1
+    #########################################################################
+    # PROBLEMAS EN LA TRANSICIÓN ACADÉMICA
+    #########################################################################
+    
+    out = pd.merge(out, out_puntajes, how='left', on='CARRERA')
+
+    # TERMINAR CON TODAS LAS COLUMNAS EN MAYÚSCULA
+    out.columns = _formatear_columnas(out.columns)
+    out = _formatear_data_set(out)
+   
+    return out
+
+
+def crear_resumen_socioeducativo(data,resumen):
+    data_frame_1 = procesar_socioeducativo_preguntas_1_20(data, resumen)
+    data_frame_2 = procesar_socioeducativo_preguntas_21_67(data, resumen)
+    out = pd.merge(data_frame_1, data_frame_2, how='left', on='CARRERA')
+    return out
 
 def crear_resumen_matematica_a(data, resumen):
 
