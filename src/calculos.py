@@ -1839,6 +1839,13 @@ def crear_resumen_pensamiento_cientifico(data, resumen):
     porcentaje_promedio_dim_4_usach = aux_data['PORCENTAJE_LOGRO_DIMENSIÓN_4_PC'].mean()
     porcentaje_promedio_dim_5_usach = aux_data['PORCENTAJE_LOGRO_DIMENSIÓN_5_PC'].mean()
 
+    # Se agregan los porcentajes al dataframe
+    out['porcentaje_promedio_dim_1_usach'] = porcentaje_promedio_dim_1_usach
+    out['porcentaje_promedio_dim_2_usach'] = porcentaje_promedio_dim_2_usach
+    out['porcentaje_promedio_dim_3_usach'] = porcentaje_promedio_dim_3_usach
+    out['porcentaje_promedio_dim_4_usach'] = porcentaje_promedio_dim_4_usach
+    out['porcentaje_promedio_dim_5_usach'] = porcentaje_promedio_dim_5_usach
+
     # Se calculan los valores de diferencia con la usach
     diferencia_puntaje_total_usach = out['puntaje_total_promedio'] - puntaje_total_promedio_usach
     diferencia_porcentaje_de_logro_usach = out['porcentaje_de_logro_promedio'] - porcentaje_de_logro_usach 
@@ -2010,6 +2017,16 @@ def crear_resumen_escritura_academica(data, resumen):
     porcentaje_promedio_dim_6_usach = aux_data['PORCENTAJE_DE_LOGRO_DIMENSIÓN_6_EA'].mean()
     porcentaje_promedio_dim_7_usach = aux_data['PORCENTAJE_DE_LOGRO_DIMENSIÓN_7_EA'].mean()
     porcentaje_promedio_dim_8_usach = aux_data['PORCENTAJE_DE_LOGRO_DIMENSIÓN_8_EA'].mean()
+
+    # Se agregan los porcentajes al dataframe
+    out['porcentaje_promedio_dim_1_usach'] = porcentaje_promedio_dim_1_usach
+    out['porcentaje_promedio_dim_2_usach'] = porcentaje_promedio_dim_2_usach
+    out['porcentaje_promedio_dim_3_usach'] = porcentaje_promedio_dim_3_usach
+    out['porcentaje_promedio_dim_4_usach'] = porcentaje_promedio_dim_4_usach
+    out['porcentaje_promedio_dim_5_usach'] = porcentaje_promedio_dim_5_usach
+    out['porcentaje_promedio_dim_6_usach'] = porcentaje_promedio_dim_6_usach
+    out['porcentaje_promedio_dim_7_usach'] = porcentaje_promedio_dim_7_usach
+    out['porcentaje_promedio_dim_8_usach'] = porcentaje_promedio_dim_8_usach
 
     # Se calculan los valores de diferencia con la usach
     diferencia_puntaje_total_usach = out['puntaje_total_promedio'] - puntaje_total_promedio_usach

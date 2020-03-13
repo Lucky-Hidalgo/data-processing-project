@@ -6,9 +6,11 @@ import numpy as np
 
 
 # TODO: REEMPLAZAR POR VALORES DE ARCHIVO DE CONFIGURACIÓN
-COLORES = ["purple", "red", "blue", "green", "orange", "yellow"]
+#COLORES = ["purple", "red", "blue", "green", "orange", "yellow"]
 
-
+ESTILO = 'seaborn-pastel'
+plt.style.use(ESTILO)
+COLORES = plt.rcParams['axes.prop_cycle'].by_key()['color']
 # Constantes
 FORMATO_IMAGEN = ".png"
 TAMANO_IMAGEN = (10, 10)
@@ -142,6 +144,7 @@ def crear_grafico_torta(valores, etiquetas):
     Salida:
     - Figura que contiene el gráfico
     """
+    plt.style.use(ESTILO)
     figura = plt.figure(figsize=TAMANO_IMAGEN)
     eje = figura.add_subplot(1, 1, 1)
     eje.pie(valores, labels=etiquetas, shadow=True, colors=COLORES,
@@ -162,6 +165,7 @@ def crear_grafico_radar(valores, etiquetas, dimensiones, porcentaje=False):
     Salida:
     - Figura que contiene el gráfico
     """
+    plt.style.use(ESTILO)
     cantidad_dimensiones = len(dimensiones)
     angulos = _generar_angulos(cantidad_dimensiones)
     figura = plt.figure(figsize=TAMANO_IMAGEN)
@@ -192,6 +196,7 @@ def crear_grafico_barras_verticales(valores, dimensiones, etiquetas=None,
     Salida:
     - Figura que contiene el gráfico
     """
+    plt.style.use(ESTILO)
     if isinstance(valores[0], (int, float)):
         valores = [valores]
     cantidad_instancias = len(valores)
@@ -229,6 +234,7 @@ def crear_grafico_barras_horizontales(valores, dimensiones, etiquetas=None,
     Salida:
     - Figura que contiene el gráfico
     """
+    plt.style.use(ESTILO)
     if isinstance(valores[0], (int, float)):
         valores = [valores]
     cantidad_instancias = len(valores)
@@ -263,6 +269,7 @@ def crear_grafico_barras_apiladas_verticales(valores, dimensiones,
     Salida:
     - Figura que contiene el gráfico
     """
+    plt.style.use(ESTILO)
     figura = plt.figure(figsize=TAMANO_IMAGEN)
     eje = figura.add_subplot(1, 1, 1)
     valores = np.array(valores)
@@ -288,6 +295,7 @@ def crear_grafico_barras_apiladas_horizontales(valores, dimensiones,
     Salida:
     - Figura que contiene el gráfico
     """
+    plt.style.use(ESTILO)
     figura = plt.figure(figsize=TAMANO_IMAGEN)
     eje = figura.add_subplot(1, 1, 1)
     valores = np.array(valores)
