@@ -43,8 +43,7 @@ def _crear_carpeta_salida(directorio_salida, nombre_salida):
     path = directorio_salida + '/' + nombre_salida
     if not os.path.exists(path):
             os.mkdir(path)      
-    else:    
-            print("Carpeta:" , path , "ya existe")
+    
     return path
 
 
@@ -58,8 +57,7 @@ def _crear_carpetas_facultades(facultades, directorio_salida):
         if not os.path.exists(path):
             os.mkdir(path)
             carpetas += 1
-        else:    
-            print("Carpeta:" , path , "ya existe")
+        
         i += 1
     
     
@@ -76,8 +74,7 @@ def _crear_carpetas_carreras(diccionario_facultades, directorio_salida):
             if not os.path.exists(path):
                 os.mkdir(path)
                 carpetas += 1
-            else:    
-                print("Carpeta:" , path , "ya existe")
+            
             
     return carpetas
 
@@ -206,8 +203,10 @@ def ejecutar_proceso(archivo_entrada, path_salida, path_out):
     lista_carreras = _obtener_carreras(df)
     lista_facultades = _obtener_facultades(df)
     diccionario_facultades = _crear_diccionario_facultades(df, lista_facultades, lista_carreras)
-    #path = _crear_carpeta_salida(path_salida,path_out)
-    #_crear_carpetas_facultades(lista_facultades, path)
-    #_crear_carpetas_carreras(diccionario_facultades, path)
-    #escribir_resultados_filtrados(df, diccionario_facultades, path)
+    path = _crear_carpeta_salida(path_salida,path_out)
+    _crear_carpetas_facultades(lista_facultades, path)
+    _crear_carpetas_carreras(diccionario_facultades, path)
+    
     return df, diccionario_facultades
+
+
