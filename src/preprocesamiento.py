@@ -188,6 +188,7 @@ def leer_data_frame(ruta):
                         'CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_18',
                         'CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_19',
                         'CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_20',
+                        'PENSAMIENTO_CIENTÍFICO_CATEGORÍA'
                         ]
     data = pd.read_excel(ruta, index_col=0)
     data = _limpiar_data_frame(data)

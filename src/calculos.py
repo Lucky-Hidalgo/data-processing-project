@@ -105,7 +105,7 @@ def crear_df_estadisticas_generales(data, resumen):
                     'CUPO PROPEDEUTICO',			
                     'CUPO R850',			
                     'PROSECUCION ESTUDIOS',			
-                    'OTROS',			
+                    'OTROS',
                     ]
 
     # SEXO
@@ -160,9 +160,36 @@ def crear_df_estadisticas_generales(data, resumen):
         out[columna + '_usach'] = aux_data['VIA_INGRESO'].count()
         i = i + 1
 
+    # PUNTAJE_PSU Y RANKING
+    # CARRERA
+    aux_data = data
+    aux = data.groupby('CARRERA').agg(
+        # Puntaje promedio de la carrera
+        promedio_puntaje_psu = ('PROMEDIO_PSU', 'mean'),
+        promedio_puntaje_ranking = ('PUNTAJE_RANKING', 'mean')
+        )
+    out = pd.merge(out, aux, how='left', on='CARRERA')
+    
+    
+    # FACULTAD
+    
+    aux = data.groupby('FACULTAD').agg(
+        # Puntaje promedio de la carrera
+        promedio_puntaje_psu_fac = ('PROMEDIO_PSU', 'mean'),
+        promedio_puntaje_ranking_fac = ('PUNTAJE_RANKING', 'mean')
+        )
+    out.reset_index(inplace=True)
+    
+    out = pd.merge(out, aux, how='left', on='FACULTAD', left_index=True)
+    out.set_index('CARRERA', inplace=True)
+
+    # USACH
+    out['PROMEDIO_PUNTAJE_PSU_USACH'] = aux_data['PROMEDIO_PSU'].mean()
+    out['PROMEDIO_PUNTAJE_RANKING_USACH'] = aux_data['PUNTAJE_RANKING'].mean()
     # FORMATEAR COLUMNAS PARA SALIDA
+
     # TERMINAR CON TODAS LAS COLUMNAS EN MAYÚSCULA
-    out.columns = [c.upper() for c in out.columns]
+    out.columns = _formatear_columnas(out.columns)
     out = _formatear_data_set(out)
 
     return out
@@ -266,7 +293,7 @@ def procesar_socioeducativo_preguntas_1_20(data, resumen):
     aux = aux.pivot(index='FACULTAD', 
                     columns='RESPUESTA', 
                     values='CUESTIONARIO_SOCIOEDUCATIVO_PREGUNTA_5')
-    aux = aux.rename(columns={'SÍ': 'VIVIA_EN_RM_FAC', 'NO':'NO_VIVIA_EN_RN_FAC'})
+    aux = aux.rename(columns={'SÍ': 'VIVIA_EN_RM_FAC', 'NO':'NO_VIVIA_EN_RM_FAC'})
     out.reset_index(inplace=True)
     
     out = pd.merge(out, aux, how='left', on='FACULTAD', left_index=True)
@@ -934,33 +961,32 @@ def procesar_socioeducativo_preguntas_1_20(data, resumen):
     ######################################################################################
     # VIA DE INGRESO 
     
-
     # PUNTAJE_PSU Y RANKING
     # CARRERA
-    aux_data = data.filter(columnas)
-    aux_data = aux_data.groupby('CARRERA').agg(
+    aux_data = data
+    aux = data.groupby('CARRERA').agg(
         # Puntaje promedio de la carrera
-        puntaje_promedio_psu = ('PROMEDIO_PSU', 'mean'),
-        puntaje_promedio_ranking = ('PUNTAJE_RANKING', 'mean')
+        promedio_puntaje_psu = ('PROMEDIO_PSU', 'mean'),
+        promedio_puntaje_ranking = ('PUNTAJE_RANKING', 'mean')
         )
-    out = pd.merge(out, aux_data, how='left', on='CARRERA')
+    out = pd.merge(out, aux, how='left', on='CARRERA')
     
     
     # FACULTAD
-    aux_data = data.filter(columnas)
-    aux_data = aux_data.groupby('FACULTAD').agg(
+    
+    aux = data.groupby('FACULTAD').agg(
         # Puntaje promedio de la carrera
-        puntaje_promedio_psu_fac = ('PROMEDIO_PSU', 'mean'),
-        puntaje_promedio_ranking_fac = ('PUNTAJE_RANKING', 'mean')
+        promedio_puntaje_psu_fac = ('PROMEDIO_PSU', 'mean'),
+        promedio_puntaje_ranking_fac = ('PUNTAJE_RANKING', 'mean')
         )
     out.reset_index(inplace=True)
     
-    out = pd.merge(out, aux_data, how='left', on='FACULTAD', left_index=True)
+    out = pd.merge(out, aux, how='left', on='FACULTAD', left_index=True)
     out.set_index('CARRERA', inplace=True)
 
     # USACH
-    out['PROMEDIO_PSU_USACH'] = data['PROMEDIO_PSU'].mean()
-    out['PUNTAJE_RANKING_USACH'] = data['PUNTAJE_RANKING'].mean()
+    out['PROMEDIO_PUNTAJE_PSU_USACH'] = aux_data['PROMEDIO_PSU'].mean()
+    out['PROMEDIO_PUNTAJE_RANKING_USACH'] = aux_data['PUNTAJE_RANKING'].mean()
 
     # ESPACIO DE ESTUDIO
     # CARRERA
@@ -1388,8 +1414,8 @@ def crear_resumen_socioeducativo(data,resumen):
     data_frame1 = procesar_socioeducativo_preguntas_1_20(data, resumen)
     
     data_frame2 = procesar_socioeducativo_preguntas_21_67(data,resumen)
-    
-    data_frame3 = procesar_socioeducativo_escalas_autorreporte(data, resumen)  
+    data_frame2 = data_frame2.drop('FACULTAD',1)
+    data_frame3 = procesar_socioeducativo_escalas_autorreporte(data, resumen)
     data_frame1 = pd.merge(data_frame1, data_frame2, how='left', on='CARRERA')
     data_frame1 = pd.merge(data_frame1, data_frame3, how='left', on='CARRERA')
     data_frame1 = _formatear_data_set(data_frame1)
@@ -1594,7 +1620,8 @@ def crear_resumen_matematica_a(data, resumen):
     out = pd.merge(out,estudiantes_con_puntaje_bajo.rename('estudiantes_con_puntaje_bajo'), how='left', on='CARRERA')
     out['porcentaje_estudiantes_con_puntaje_bajo'] = out['estudiantes_con_puntaje_bajo'] / out['INSCRITOS']
     # TERMINAR CON TODAS LAS COLUMNAS EN MAYÚSCULA
-    out.columns = [c.upper() for c in out.columns]
+    
+    out.columns = _formatear_columnas(out.columns)
     out = _formatear_data_set(out)
     return out
 
@@ -1636,7 +1663,9 @@ def crear_resumen_matematica_b(data, resumen):
                             'PORCENTAJE_DE_LOGRO_EJE_1_(MB)',
                             'PORCENTAJE_DE_LOGRO_EJE_2_(MB)',
                             'PORCENTAJE_DE_LOGRO_EJE_3_(MB)',
-                            'PORCENTAJE_DE_LOGRO_EJE_4_(MB)'
+                            'PORCENTAJE_DE_LOGRO_EJE_4_(MB)',
+                            'PROMEDIO_PSU',
+                            'PUNTAJE_RANKING'
                             ])
     
     calculos_x_facultad = aux_data.groupby('FACULTAD').agg(
@@ -1754,7 +1783,35 @@ def crear_resumen_matematica_b(data, resumen):
     out['diferencia_promedio_obj_3_fac'] = out['porcentaje_promedio_obj_3'] - out['porcentaje_promedio_obj_3_fac']
     out['diferencia_promedio_obj_4_fac'] = out['porcentaje_promedio_obj_4'] - out['porcentaje_promedio_obj_4_fac']
     out['diferencia_promedio_obj_5_fac'] = out['porcentaje_promedio_obj_5'] - out['porcentaje_promedio_obj_5_fac']
+    '''
+    
+    # PUNTAJE_PSU Y RANKING
+    # CARRERA
+    
+    aux = aux_data.groupby('CARRERA').agg(
+        # Puntaje promedio de la carrera
+        puntaje_promedio_psu = ('PROMEDIO_PSU', 'mean'),
+        puntaje_promedio_ranking = ('PUNTAJE_RANKING', 'mean')
+        )
+    out = pd.merge(out, aux, how='left', on='CARRERA')
+    
+    
+    # FACULTAD
+    
+    aux = aux_data.groupby('FACULTAD').agg(
+        # Puntaje promedio de la carrera
+        puntaje_promedio_psu_fac = ('PROMEDIO_PSU', 'mean'),
+        puntaje_promedio_ranking_fac = ('PUNTAJE_RANKING', 'mean')
+        )
+    out.reset_index(inplace=True)
+    
+    out = pd.merge(out, aux, how='left', on='FACULTAD', left_index=True)
+    out.set_index('CARRERA', inplace=True)
 
+    # USACH
+    out['PROMEDIO_PSU_USACH'] = aux_data['PROMEDIO_PSU'].mean()
+    out['PUNTAJE_PROMEDIO_RANKING_USACH'] = aux_data['PUNTAJE_RANKING'].mean()
+    '''
     # CALCULAR CANTIDAD DE CASOS CRITICOS
     
     new_aux_data = aux_data[aux_data['PORCENTAJE_DE_LOGRO_(MB)'] < 0.6]
@@ -1763,10 +1820,9 @@ def crear_resumen_matematica_b(data, resumen):
     
     out = pd.merge(out,estudiantes_con_puntaje_bajo.rename('estudiantes_con_puntaje_bajo'), how='left', on='CARRERA')
     out['porcentaje_estudiantes_con_puntaje_bajo'] = out['estudiantes_con_puntaje_bajo'] / out['INSCRITOS']
-    # CAMBIAR VALORES NAN POR 0s
-    out = _formatear_data_set(out)
     # TERMINAR CON TODAS LAS COLUMNAS EN MAYÚSCULA
-    out.columns = [c.upper() for c in out.columns]
+    out.columns = _formatear_columnas(out.columns)
+    out = _formatear_data_set(out)
     return out
 
 
@@ -1799,8 +1855,8 @@ def crear_resumen_pensamiento_cientifico(data, resumen):
                             'PORCENTAJE_LOGRO_DIMENSIÓN_3_PC',
                             'PORCENTAJE_LOGRO_DIMENSIÓN_4_PC',
                             'PORCENTAJE_LOGRO_DIMENSIÓN_5_PC',
-                            'PENSAMIENTO_CIENTÍFICO_CATEGORÍA'
-
+                            'PENSAMIENTO_CIENTÍFICO_CATEGORÍA',
+                            
                             ])
 
     calculos_x_facultad = aux_data.groupby('FACULTAD').agg(
@@ -1834,6 +1890,9 @@ def crear_resumen_pensamiento_cientifico(data, resumen):
     # Se calculan los valores para todos los datos del conjunto
     puntaje_total_promedio_usach = aux_data['PUNTAJE_TOTAL_(PC)'].mean()
     porcentaje_de_logro_usach = aux_data['PORCENTAJE_DE_LOGRO_(PC)'].mean()
+    out['PUNTAJE_TOTAL_PROMEDIO_USACH'] = puntaje_total_promedio_usach
+    out['PORCENTAJE_DE_LOGRO_PROMEDIO_USACH'] = porcentaje_de_logro_usach
+
     # Porcentaje de logro x eje temático total 
     porcentaje_promedio_dim_1_usach = aux_data['PORCENTAJE_LOGRO_DIMENSIÓN_1_PC'].mean()
     porcentaje_promedio_dim_2_usach = aux_data['PORCENTAJE_LOGRO_DIMENSIÓN_2_PC'].mean()
@@ -1884,7 +1943,7 @@ def crear_resumen_pensamiento_cientifico(data, resumen):
 
     # CALCULAR CANTIDAD DE ESTUDIANTES DE CADA CATEGORÍA DE PENSAMIENTO CIENTÍFICO
     # Concretos
-    new_aux_data = aux_data[aux_data['PENSAMIENTO_CIENTÍFICO_CATEGORÍA'] == 'Concreto']
+    new_aux_data = aux_data[aux_data['PENSAMIENTO_CIENTÍFICO_CATEGORÍA'] == 'CONCRETO']
     # CARRERA
     concretos = new_aux_data.groupby('CARRERA')['PENSAMIENTO_CIENTÍFICO_CATEGORÍA'].count()
     out = pd.merge(out, concretos.rename('concreto'), how='left', on='CARRERA')
@@ -1899,7 +1958,7 @@ def crear_resumen_pensamiento_cientifico(data, resumen):
     out['concreto_usach'] = new_aux_data['PENSAMIENTO_CIENTÍFICO_CATEGORÍA'].count()
 
     # Transicional
-    new_aux_data = aux_data[aux_data['PENSAMIENTO_CIENTÍFICO_CATEGORÍA'] == 'Transicional']
+    new_aux_data = aux_data[aux_data['PENSAMIENTO_CIENTÍFICO_CATEGORÍA'] == 'TRANSICIONAL']
     # CARRERA
     transicionales = new_aux_data.groupby('CARRERA')['PENSAMIENTO_CIENTÍFICO_CATEGORÍA'].count()
     out = pd.merge(out, transicionales.rename('transicional'), how='left', on='CARRERA')
@@ -1914,7 +1973,7 @@ def crear_resumen_pensamiento_cientifico(data, resumen):
     out['transicional_usach'] = new_aux_data['PENSAMIENTO_CIENTÍFICO_CATEGORÍA'].count()
 
     # Formal
-    new_aux_data = aux_data[aux_data['PENSAMIENTO_CIENTÍFICO_CATEGORÍA'] == 'Formal']
+    new_aux_data = aux_data[aux_data['PENSAMIENTO_CIENTÍFICO_CATEGORÍA'] == 'FORMAL']
     # CARRERA
     formales = new_aux_data.groupby('CARRERA')['PENSAMIENTO_CIENTÍFICO_CATEGORÍA'].count()
     out = pd.merge(out, formales.rename('formal'), how='left', on='CARRERA')
@@ -1928,6 +1987,84 @@ def crear_resumen_pensamiento_cientifico(data, resumen):
     # USACH
     out['formal_usach'] = new_aux_data['PENSAMIENTO_CIENTÍFICO_CATEGORÍA'].count()
 
+    # TIPOS DE PENSAMIENTO EN PORCENTAJE
+    
+    # CARRERA
+    aux = data[data['PENSAMIENTO_CIENTÍFICO_CATEGORÍA']!='']
+    aux = aux.groupby('CARRERA')['PENSAMIENTO_CIENTÍFICO_CATEGORÍA'].value_counts(normalize=True)
+    aux = pd.DataFrame(aux)
+    aux.index = aux.index.set_names(['CARRERA', 'RESPUESTA'])
+    aux.reset_index(inplace=True)
+    aux = aux.pivot(index='CARRERA', 
+                    columns='RESPUESTA', 
+                    values='PENSAMIENTO_CIENTÍFICO_CATEGORÍA')
+    aux = aux.rename(columns={'CONCRETO': 'PORCENTAJE_CONCRETO', 
+                                'TRANSICIONAL': 'PORCENTAJE_TRANSICIONAL',
+                                'FORMAL': 'PORCENTAJE_FORMAL'})
+    out = pd.merge(out, aux, how='left', on='CARRERA')
+
+        # FACULTAD
+    aux = data[data['PENSAMIENTO_CIENTÍFICO_CATEGORÍA']!='']
+    aux = aux.groupby('FACULTAD')['PENSAMIENTO_CIENTÍFICO_CATEGORÍA'].value_counts(normalize=True)
+    aux = pd.DataFrame(aux)
+    aux.index = aux.index.set_names(['FACULTAD', 'RESPUESTA'])
+    aux.reset_index(inplace=True)
+    aux = aux.pivot(index='FACULTAD', 
+                    columns='RESPUESTA', 
+                    values='PENSAMIENTO_CIENTÍFICO_CATEGORÍA')
+    aux = aux.rename(columns={'CONCRETO': 'PORCENTAJE_CONCRETO_FAC', 
+                                'TRANSICIONAL': 'PORCENTAJE_TRANSICIONAL_FAC',
+                                'FORMAL': 'PORCENTAJE_FORMAL_FAC'})
+    out.reset_index(inplace=True)
+    # PARCHE
+    out['PORCENTAJE_FORMAL'] = 0
+    out['PORCENTAJE_FORMAL_FAC'] = 0
+    out = pd.merge(out, aux, how='left', on='FACULTAD', left_index=True)
+
+    out.set_index('CARRERA', inplace=True)
+
+    # USACH 
+    aux = data[data['PENSAMIENTO_CIENTÍFICO_CATEGORÍA']!='']
+    aux_total = aux['PENSAMIENTO_CIENTÍFICO_CATEGORÍA'].count()
+    
+    aux = aux[aux['PENSAMIENTO_CIENTÍFICO_CATEGORÍA']=='CONCRETO']
+    out['PORCENTAJE_CONCRETO_USACH'] = aux['PENSAMIENTO_CIENTÍFICO_CATEGORÍA'].count() / aux_total
+
+    aux = data[data['PENSAMIENTO_CIENTÍFICO_CATEGORÍA']!='']
+    aux = aux[aux['PENSAMIENTO_CIENTÍFICO_CATEGORÍA']=='TRANSICIONAL']
+    out['PORCENTAJE_TRANSICIONAL_USACH'] = aux['PENSAMIENTO_CIENTÍFICO_CATEGORÍA'].count() / aux_total
+
+    aux = data[data['PENSAMIENTO_CIENTÍFICO_CATEGORÍA']!='']
+    aux = aux[aux['PENSAMIENTO_CIENTÍFICO_CATEGORÍA']=='FORMAL']
+    out['PORCENTAJE_FORMAL_USACH'] = aux['PENSAMIENTO_CIENTÍFICO_CATEGORÍA'].count() / aux_total
+    '''
+     # PUNTAJE_PSU Y RANKING
+    # CARRERA
+    
+    aux = aux_data.groupby('CARRERA').agg(
+        # Puntaje promedio de la carrera
+        puntaje_promedio_psu = ('PROMEDIO_PSU', 'mean'),
+        puntaje_promedio_ranking = ('PUNTAJE_RANKING', 'mean')
+        )
+    out = pd.merge(out, aux, how='left', on='CARRERA')
+    
+    
+    # FACULTAD
+    
+    aux = aux_data.groupby('FACULTAD').agg(
+        # Puntaje promedio de la carrera
+        puntaje_promedio_psu_fac = ('PROMEDIO_PSU', 'mean'),
+        puntaje_promedio_ranking_fac = ('PUNTAJE_RANKING', 'mean')
+        )
+    out.reset_index(inplace=True)
+    
+    out = pd.merge(out, aux, how='left', on='FACULTAD', left_index=True)
+    out.set_index('CARRERA', inplace=True)
+
+    # USACH
+    out['PROMEDIO_PSU_USACH'] = aux_data['PROMEDIO_PSU'].mean()
+    out['PUNTAJE_PROMEDIO_RANKING_USACH'] = aux_data['PUNTAJE_RANKING'].mean()
+    '''
     # CALCULAR CANTIDAD DE CASOS CRITICOS
     
     new_aux_data = aux_data[aux_data['PORCENTAJE_DE_LOGRO_(PC)'] < 0.6]
@@ -1937,7 +2074,7 @@ def crear_resumen_pensamiento_cientifico(data, resumen):
     out = pd.merge(out,estudiantes_con_puntaje_bajo.rename('estudiantes_con_puntaje_bajo'), how='left', on='CARRERA')
     out['porcentaje_estudiantes_con_puntaje_bajo'] = out['estudiantes_con_puntaje_bajo'] / out['INSCRITOS']
     # TERMINAR CON TODAS LAS COLUMNAS EN MAYÚSCULA
-    out.columns = [c.upper() for c in out.columns]
+    out.columns = _formatear_columnas(out.columns)
     out = _formatear_data_set(out)
     return out
 
@@ -1969,7 +2106,9 @@ def crear_resumen_escritura_academica(data, resumen):
                             'PORCENTAJE_DE_LOGRO_DIMENSIÓN_5_EA',
                             'PORCENTAJE_DE_LOGRO_DIMENSIÓN_6_EA',
                             'PORCENTAJE_DE_LOGRO_DIMENSIÓN_7_EA',
-                            'PORCENTAJE_DE_LOGRO_DIMENSIÓN_8_EA'
+                            'PORCENTAJE_DE_LOGRO_DIMENSIÓN_8_EA',
+                            'PROMEDIO_PSU',
+                            'PUNTAJE_RANKING'
                             ])
 
     calculos_x_facultad = aux_data.groupby('FACULTAD').agg(
@@ -2010,6 +2149,8 @@ def crear_resumen_escritura_academica(data, resumen):
     # Se calculan los valores para todos los datos del conjunto
     puntaje_total_promedio_usach = aux_data['PUNTAJE_TOTAL_(EA)'].mean()
     porcentaje_de_logro_usach = aux_data['PORCENTAJE_DE_LOGRO_(EA)'].mean()
+    out['puntaje_total_promedio_usach'] = puntaje_total_promedio_usach
+    out['porcentaje_de_logro_usach'] = porcentaje_de_logro_usach
     # Porcentaje de logro x eje temático total 
     porcentaje_promedio_dim_1_usach = aux_data['PORCENTAJE_DE_LOGRO_DIMENSIÓN_1_EA'].mean()
     porcentaje_promedio_dim_2_usach = aux_data['PORCENTAJE_DE_LOGRO_DIMENSIÓN_2_EA'].mean()
@@ -2074,6 +2215,34 @@ def crear_resumen_escritura_academica(data, resumen):
     out['diferencia_promedio_dim_7_fac'] = out['porcentaje_promedio_dim_7'] - out['porcentaje_promedio_dim_7_fac']
     out['diferencia_promedio_dim_8_fac'] = out['porcentaje_promedio_dim_8'] - out['porcentaje_promedio_dim_8_fac']
     
+    '''
+    # PUNTAJE_PSU Y RANKING
+    # CARRERA
+    
+    aux = aux_data.groupby('CARRERA').agg(
+        # Puntaje promedio de la carrera
+        puntaje_promedio_psu = ('PROMEDIO_PSU', 'mean'),
+        puntaje_promedio_ranking = ('PUNTAJE_RANKING', 'mean')
+        )
+    out = pd.merge(out, aux, how='left', on='CARRERA')
+    
+    
+    # FACULTAD
+    
+    aux = aux_data.groupby('FACULTAD').agg(
+        # Puntaje promedio de la carrera
+        puntaje_promedio_psu_fac = ('PROMEDIO_PSU', 'mean'),
+        puntaje_promedio_ranking_fac = ('PUNTAJE_RANKING', 'mean')
+        )
+    out.reset_index(inplace=True)
+    
+    out = pd.merge(out, aux, how='left', on='FACULTAD', left_index=True)
+    out.set_index('CARRERA', inplace=True)
+
+    # USACH
+    out['PROMEDIO_PSU_USACH'] = aux_data['PROMEDIO_PSU'].mean()
+    out['PUNTAJE_PROMEDIO_RANKING_USACH'] = aux_data['PUNTAJE_RANKING'].mean()
+    '''
     # CALCULAR CANTIDAD DE CASOS CRITICOS
     
     new_aux_data = aux_data[aux_data['PORCENTAJE_DE_LOGRO_(EA)'] < 0.6]
@@ -2083,6 +2252,6 @@ def crear_resumen_escritura_academica(data, resumen):
     out = pd.merge(out,estudiantes_con_puntaje_bajo.rename('estudiantes_con_puntaje_bajo'), how='left', on='CARRERA')
     out['porcentaje_estudiantes_con_puntaje_bajo'] = out['estudiantes_con_puntaje_bajo'] / out['INSCRITOS']
     # TERMINAR CON TODAS LAS COLUMNAS EN MAYÚSCULA
-    out.columns = [c.upper() for c in out.columns]
+    out.columns = _formatear_columnas(out.columns)
     out = _formatear_data_set(out)
     return out
